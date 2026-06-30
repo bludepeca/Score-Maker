@@ -1,0 +1,8 @@
+env: load .env.development
+env: export API_URL EXPO_PUBLIC_ANILIST_CLIENT_ID EXPO_PUBLIC_ANILIST_CLIENT_SECRET SUPABASE_KEY SUPABASE_URL
+Starting project at /home/lautaro/Documentos/Proyectos/ScoreMaker
+› Port 8081 is being used by another process
+Input is required, but 'npx expo' is in non-interactive mode.
+Required input:
+> Use port 8082 instead?
+› Skipping dev server

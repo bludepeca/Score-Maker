@@ -8,6 +8,20 @@
       "when": 1782846720592,
       "tag": "0000_premium_sebastian_shaw",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1782923671609,
+      "tag": "0001_happy_satana",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1782925824106,
+      "tag": "0002_awesome_daimon_hellstrom",
+      "breakpoints": true
     }
   ]
 }

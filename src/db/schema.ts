@@ -18,9 +18,32 @@ export const criteria = sqliteTable('criteria', {
   order: integer('order').notNull().default(0),
 });
 
+export const criteriaPacks = sqliteTable('criteria_packs', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  description: text('description'),
+  isDefault: integer('is_default', { mode: 'boolean' }).default(false),
+  targetTypes: text('target_types'), // JSON array like '["ANIME", "MANGA"]'
+  targetGenres: text('target_genres'), // JSON array like '["Action", "Romance"]'
+});
+
+export const criteriaItems = sqliteTable('criteria_items', {
+  id: text('id').primaryKey(),
+  packId: text('pack_id')
+    .references(() => criteriaPacks.id)
+    .notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  weight: real('weight').notNull(),
+  scoreExplanations: text('score_explanations'), // JSON string
+  order: integer('order').notNull().default(0),
+});
+
 export const scores = sqliteTable('scores', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  animeId: integer('anime_id').notNull().references(() => animes.id),
+  animeId: integer('anime_id')
+    .notNull()
+    .references(() => animes.id),
   calculatedScore: real('calculated_score').notNull(),
   manualScore: real('manual_score'),
   finalScore: real('final_score').notNull(),

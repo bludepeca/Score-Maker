@@ -20,59 +20,178 @@ export const DEFAULT_PACKS: CriteriaPack[] = [
     id: 'anime_general',
     name: 'Anime General',
     criteria: [
-      { 
-        id: 1, name: 'Historia / Guion', description: 'Coherencia narrativa, desarrollo de la trama y ritmo.', weight: 20, score: 0,
-        scoreExplanations: { 10: 'Guion perfecto, sin huecos argumentales', 8: 'Muy buena historia con detalles menores', 6: 'La historia está bien pero no destaca', 4: 'Aburrida o llena de conveniencias', 2: 'Incoherente total' }
+      {
+        id: 1,
+        name: 'Historia / Guion',
+        description: 'Coherencia narrativa, desarrollo de la trama y ritmo.',
+        weight: 20,
+        score: 0,
+        scoreExplanations: {
+          10: 'Guion perfecto, sin huecos argumentales',
+          8: 'Muy buena historia con detalles menores',
+          6: 'La historia está bien pero no destaca',
+          4: 'Aburrida o llena de conveniencias',
+          2: 'Incoherente total',
+        },
       },
-      { 
-        id: 2, name: 'Personajes', description: 'Profundidad, evolución y carisma del elenco.', weight: 15, score: 0,
-        scoreExplanations: { 10: 'Evolución magistral y carismáticos', 8: 'Buenos personajes, empatizas con ellos', 5: 'Planos pero cumplen su función', 2: 'Inaguantables o mal escritos' }
+      {
+        id: 2,
+        name: 'Personajes',
+        description: 'Profundidad, evolución y carisma del elenco.',
+        weight: 15,
+        score: 0,
+        scoreExplanations: {
+          10: 'Evolución magistral y carismáticos',
+          8: 'Buenos personajes, empatizas con ellos',
+          5: 'Planos pero cumplen su función',
+          2: 'Inaguantables o mal escritos',
+        },
       },
-      { 
-        id: 3, name: 'Final / Resolución', description: 'Satisfacción y cierre de los arcos argumentales.', weight: 15, score: 0,
-        scoreExplanations: { 10: 'Cierre perfecto y memorable', 7: 'Cierre correcto', 4: 'Final apresurado o inconcluso', 0: 'Final arruina toda la serie' }
+      {
+        id: 3,
+        name: 'Final / Resolución',
+        description: 'Satisfacción y cierre de los arcos argumentales.',
+        weight: 15,
+        score: 0,
+        scoreExplanations: {
+          10: 'Cierre perfecto y memorable',
+          7: 'Cierre correcto',
+          4: 'Final apresurado o inconcluso',
+          0: 'Final arruina toda la serie',
+        },
       },
-      { 
-        id: 4, name: 'Animación', description: 'Calidad visual, fluidez y estilo artístico.', weight: 10, score: 0,
-        scoreExplanations: { 10: 'Espectáculo visual constante (Nivel película)', 7: 'Buena animación, algunos bajones', 5: 'Promedio, cumple', 2: 'Animación PowerPoint' }
+      {
+        id: 4,
+        name: 'Animación',
+        description: 'Calidad visual, fluidez y estilo artístico.',
+        weight: 10,
+        score: 0,
+        scoreExplanations: {
+          10: 'Espectáculo visual constante (Nivel película)',
+          7: 'Buena animación, algunos bajones',
+          5: 'Promedio, cumple',
+          2: 'Animación PowerPoint',
+        },
       },
-      { 
-        id: 5, name: 'Dirección', description: 'Cinematografía, encuadres y visión del director.', weight: 10, score: 0,
-        scoreExplanations: { 10: 'Dirección magistral que eleva la obra', 7: 'Buena dirección', 4: 'Dirección plana y aburrida' }
+      {
+        id: 5,
+        name: 'Dirección',
+        description: 'Cinematografía, encuadres y visión del director.',
+        weight: 10,
+        score: 0,
+        scoreExplanations: {
+          10: 'Dirección magistral que eleva la obra',
+          7: 'Buena dirección',
+          4: 'Dirección plana y aburrida',
+        },
       },
-      { 
-        id: 6, name: 'Banda Sonora', description: 'Música, efectos de sonido y actuación de voz (seiyuus).', weight: 10, score: 0,
-        scoreExplanations: { 10: 'OST memorable que escucharías a diario', 7: 'Acompaña muy bien las escenas', 4: 'Olvidable', 2: 'Música repetitiva o molesta' }
+      {
+        id: 6,
+        name: 'Banda Sonora',
+        description: 'Música, efectos de sonido y actuación de voz (seiyuus).',
+        weight: 10,
+        score: 0,
+        scoreExplanations: {
+          10: 'OST memorable que escucharías a diario',
+          7: 'Acompaña muy bien las escenas',
+          4: 'Olvidable',
+          2: 'Música repetitiva o molesta',
+        },
       },
-      { 
-        id: 7, name: 'Impacto Emocional', description: 'Qué tanto te hizo sentir (risa, llanto, tensión).', weight: 5, score: 0,
-        scoreExplanations: { 10: 'Me cambió la vida / Lloré / Reí sin parar', 7: 'Logró emocionarme en momentos clave', 3: 'No me transmitió nada' }
+      {
+        id: 7,
+        name: 'Impacto Emocional',
+        description: 'Qué tanto te hizo sentir (risa, llanto, tensión).',
+        weight: 5,
+        score: 0,
+        scoreExplanations: {
+          10: 'Me cambió la vida / Lloré / Reí sin parar',
+          7: 'Logró emocionarme en momentos clave',
+          3: 'No me transmitió nada',
+        },
       },
-      { 
-        id: 8, name: 'Temáticas', description: 'Profundidad de los temas tratados y su ejecución.', weight: 5, score: 0,
-        scoreExplanations: { 10: 'Trata temas complejos de forma madura', 5: 'Temas comunes bien llevados', 2: 'Mensaje contradictorio o superficial' }
+      {
+        id: 8,
+        name: 'Temáticas',
+        description: 'Profundidad de los temas tratados y su ejecución.',
+        weight: 5,
+        score: 0,
+        scoreExplanations: {
+          10: 'Trata temas complejos de forma madura',
+          5: 'Temas comunes bien llevados',
+          2: 'Mensaje contradictorio o superficial',
+        },
       },
-      { 
-        id: 9, name: 'Originalidad', description: 'Creatividad y frescura de la propuesta.', weight: 5, score: 0,
-        scoreExplanations: { 10: 'Nunca vi algo igual', 6: 'Toma clichés y los hace bien', 2: 'Copia descarada' }
+      {
+        id: 9,
+        name: 'Originalidad',
+        description: 'Creatividad y frescura de la propuesta.',
+        weight: 5,
+        score: 0,
+        scoreExplanations: {
+          10: 'Nunca vi algo igual',
+          6: 'Toma clichés y los hace bien',
+          2: 'Copia descarada',
+        },
       },
-      { 
-        id: 10, name: 'Disfrute Personal', description: 'Factor X. Qué tanto la pasaste bien viéndolo.', weight: 5, score: 0,
-        scoreExplanations: { 10: 'Mi nuevo anime favorito', 7: 'Me enganchó bastante', 4: 'Lo vi por inercia', 0: 'Fue una tortura terminarlo' }
+      {
+        id: 10,
+        name: 'Disfrute Personal',
+        description: 'Factor X. Qué tanto la pasaste bien viéndolo.',
+        weight: 5,
+        score: 0,
+        scoreExplanations: {
+          10: 'Mi nuevo anime favorito',
+          7: 'Me enganchó bastante',
+          4: 'Lo vi por inercia',
+          0: 'Fue una tortura terminarlo',
+        },
       },
-    ]
+    ],
   },
   {
     id: 'manga_general',
-    name: 'Manga / Manhwa',
+    name: 'Manga General',
     criteria: [
-      { id: 11, name: 'Historia', description: 'Trama y desarrollo narrativo.', weight: 25, score: 0, scoreExplanations: { 10: 'Obra maestra narrativa', 5: 'Decente' } },
-      { id: 12, name: 'Arte y Dibujo', description: 'Detalle de paneles, anatomía y fondos.', weight: 25, score: 0, scoreExplanations: { 10: 'Paneles dignos de museo', 5: 'Dibujo promedio', 1: 'Garabatos' } },
-      { id: 13, name: 'Personajes', description: 'Desarrollo del elenco principal.', weight: 20, score: 0 },
-      { id: 14, name: 'Panelería / Ritmo', description: 'Flujo de lectura y composición de página.', weight: 15, score: 0 },
-      { id: 15, name: 'Disfrute', description: 'Factor de enganche general.', weight: 15, score: 0 },
-    ]
-  }
+      {
+        id: 11,
+        name: 'Historia',
+        description: 'Trama y desarrollo narrativo.',
+        weight: 25,
+        score: 0,
+        scoreExplanations: { 10: 'Obra maestra narrativa', 5: 'Decente' },
+      },
+      {
+        id: 12,
+        name: 'Arte y Dibujo',
+        description: 'Detalle de paneles, anatomía y fondos.',
+        weight: 25,
+        score: 0,
+        scoreExplanations: { 10: 'Paneles dignos de museo', 5: 'Dibujo promedio', 1: 'Garabatos' },
+      },
+      {
+        id: 13,
+        name: 'Personajes',
+        description: 'Desarrollo del elenco principal.',
+        weight: 20,
+        score: 0,
+      },
+      {
+        id: 14,
+        name: 'Panelería / Ritmo',
+        description: 'Flujo de lectura y composición de página.',
+        weight: 15,
+        score: 0,
+      },
+      {
+        id: 15,
+        name: 'Disfrute',
+        description: 'Factor de enganche general.',
+        weight: 15,
+        score: 0,
+      },
+    ],
+  },
 ];
 
 /**
@@ -104,7 +223,7 @@ export const calculateFinalScore = (criteria: Criterion[]): number => {
  */
 export const convertToAnilistScale = (
   score100: number,
-  scale: 'POINT_100' | 'POINT_10_DECIMAL' | 'POINT_10' | 'POINT_5' | 'POINT_3'
+  scale: 'POINT_100' | 'POINT_10_DECIMAL' | 'POINT_10' | 'POINT_5' | 'POINT_3',
 ): number => {
   switch (scale) {
     case 'POINT_100':

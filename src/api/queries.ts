@@ -17,6 +17,7 @@ export const GET_USER_ANIME_LIST = gql`
     Page(page: 1, perPage: 50) {
       mediaList(userId: $userId, type: ANIME, sort: UPDATED_TIME_DESC) {
         status
+        score
         media {
           id
           title {
@@ -26,7 +27,12 @@ export const GET_USER_ANIME_LIST = gql`
           coverImage {
             large
           }
+          bannerImage
+          description(asHtml: false)
+          status
           episodes
+          type
+          genres
         }
       }
     }

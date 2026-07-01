@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
-import { makeRedirectUri, useAuthRequest, ResponseType, exchangeCodeAsync, TokenResponse } from 'expo-auth-session';
+import {
+  makeRedirectUri,
+  useAuthRequest,
+  ResponseType,
+  exchangeCodeAsync,
+  TokenResponse,
+} from 'expo-auth-session';
 import { useAuthStore } from '../store/useAuthStore';
 
 // Required for web browser flow
@@ -17,7 +23,7 @@ export default function LoginScreen({ navigation }: any) {
   const [isExchanging, setIsExchanging] = useState(false);
 
   const redirectUri = makeRedirectUri({
-    scheme: 'scoremaker'
+    scheme: 'scoremaker',
   });
 
   const [request, response, promptAsync] = useAuthRequest(
@@ -28,7 +34,7 @@ export default function LoginScreen({ navigation }: any) {
       responseType: ResponseType.Code,
       usePKCE: false,
     },
-    anilistEndpoint
+    anilistEndpoint,
   );
 
   useEffect(() => {
@@ -40,7 +46,10 @@ export default function LoginScreen({ navigation }: any) {
         const clientSecret = process.env.EXPO_PUBLIC_ANILIST_CLIENT_SECRET;
 
         if (!clientSecret) {
-          Alert.alert('Falta el Secret', 'La app no detecta el EXPO_PUBLIC_ANILIST_CLIENT_SECRET. Por favor, asegúrate de reiniciar la terminal con "npm start -c".');
+          Alert.alert(
+            'Falta el Secret',
+            'La app no detecta el EXPO_PUBLIC_ANILIST_CLIENT_SECRET. Por favor, asegúrate de reiniciar la terminal con "npm start -c".',
+          );
           setIsExchanging(false);
           return;
         }
@@ -49,7 +58,7 @@ export default function LoginScreen({ navigation }: any) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json',
+            Accept: 'application/json',
           },
           body: JSON.stringify({
             grant_type: 'authorization_code',
@@ -88,12 +97,12 @@ export default function LoginScreen({ navigation }: any) {
   }, [response]);
 
   return (
-    <View className="flex-1 bg-zinc-950 items-center justify-center p-6">
-      <Text className="text-4xl font-bold text-white mb-2">ScoreMaker</Text>
-      <Text className="text-zinc-400 text-center mb-10">
+    <View className="flex-1 bg-zinc-50 dark:bg-zinc-950 items-center justify-center p-6">
+      <Text className="text-4xl font-bold text-zinc-900 dark:text-white mb-2">ScoreMaker</Text>
+      <Text className="text-zinc-500 dark:text-zinc-400 text-center mb-10">
         Califica tus animes favoritos y sincroniza automáticamente con AniList
       </Text>
-      
+
       {isExchanging ? (
         <ActivityIndicator size="large" color="#3b82f6" />
       ) : (

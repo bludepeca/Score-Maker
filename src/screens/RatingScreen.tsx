@@ -1,17 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import CriterionCard from '../components/CriterionCard';
 import CriteriaSlider from '../components/CriteriaSlider';
-import { calculateFinalScore, Criterion, DEFAULT_PACKS } from '../utils/calculator';
+import {
+  calculateFinalScore,
+  convertToAnilistScale,
+  Criterion,
+  DEFAULT_PACKS,
+} from '../utils/calculator';
 import { db } from '../db';
 import { scores, syncQueue } from '../db/schema';
 import { processSyncQueue } from '../services/syncService';
 import { useMutation } from '@apollo/client/react';
 import { SAVE_MEDIA_LIST_ENTRY } from '../api/queries';
 import { eq } from 'drizzle-orm';
+import { useAuthStore } from '../store/useAuthStore';
 
 export default function RatingScreen({ route, navigation }: any) {
   const initialCriteria = DEFAULT_PACKS.find((p) => p.id === 'anime_general')?.criteria || [];
+  const scoreFormat = useAuthStore((state) => state.scoreFormat);
 
   const [criteria, setCriteria] = useState<Criterion[]>(initialCriteria);
   const [finalScore, setFinalScore] = useState(0);
@@ -92,60 +99,86 @@ export default function RatingScreen({ route, navigation }: any) {
   };
 
   const handleSave = async () => {
-    try {
-      const currentAnimeId = route.params?.animeId || 1;
+    Alert.alert(
+      'Guardar Puntuación',
+      '¿Deseas guardar esta nota localmente y sincronizarla con AniList?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Guardar',
+          onPress: async () => {
+            try {
+              const currentAnimeId = route.params?.animeId || 1;
 
-      // 1. Intentar guardar en AniList directamente
-      try {
-        await saveToAnilist({
-          variables: {
-            mediaId: currentAnimeId,
-            scoreRaw: finalScore,
+              // 1. Intentar guardar en AniList directamente
+              try {
+                const rawScoreToSave = scoreFormat
+                  ? convertToAnilistScale(finalScore, scoreFormat as any)
+                  : finalScore;
+
+                await saveToAnilist({
+                  variables: {
+                    mediaId: currentAnimeId,
+                    scoreRaw: rawScoreToSave,
+                  },
+                });
+                console.log('Guardado en AniList correctamente.');
+              } catch (anilistError) {
+                console.error('Error guardando en AniList:', anilistError);
+                Alert.alert(
+                  'Error de conexión',
+                  'No se pudo guardar la nota en AniList en este momento. Se intentará sincronizar más tarde.',
+                );
+              }
+
+              // 2. Guardar en SQLite local
+              const existing = await db
+                .select()
+                .from(scores)
+                .where(eq(scores.animeId, currentAnimeId));
+              if (existing.length > 0) {
+                await db
+                  .update(scores)
+                  .set({
+                    calculatedScore: finalScore,
+                    finalScore: finalScore,
+                    breakdown: JSON.stringify(criteria),
+                  })
+                  .where(eq(scores.animeId, currentAnimeId));
+              } else {
+                await db.insert(scores).values({
+                  animeId: currentAnimeId,
+                  calculatedScore: finalScore,
+                  finalScore: finalScore,
+                  breakdown: JSON.stringify(criteria),
+                  createdAt: new Date(),
+                });
+              }
+
+              // 3. Cola de sincronización para Supabase/Fallbacks
+              await db.insert(syncQueue).values({
+                action: 'SAVE_SCORE',
+                payload: JSON.stringify({
+                  animeId: currentAnimeId,
+                  finalScore,
+                  breakdown: criteria,
+                }),
+                createdAt: new Date(),
+              });
+
+              processSyncQueue(); // Fire and forget
+
+              navigation.goBack();
+            } catch (error) {
+              console.error('Error guardando localmente:', error);
+            }
           },
-        });
-        console.log('Guardado en AniList correctamente.');
-      } catch (anilistError) {
-        console.error('Error guardando en AniList:', anilistError);
-        Alert.alert(
-          'Error de conexión',
-          'No se pudo guardar la nota en AniList en este momento. Se intentará sincronizar más tarde.',
-        );
-      }
-
-      // 2. Guardar en SQLite local
-      const existing = await db.select().from(scores).where(eq(scores.animeId, currentAnimeId));
-      if (existing.length > 0) {
-        await db
-          .update(scores)
-          .set({
-            calculatedScore: finalScore,
-            finalScore: finalScore,
-            breakdown: JSON.stringify(criteria),
-          })
-          .where(eq(scores.animeId, currentAnimeId));
-      } else {
-        await db.insert(scores).values({
-          animeId: currentAnimeId,
-          calculatedScore: finalScore,
-          finalScore: finalScore,
-          breakdown: JSON.stringify(criteria),
-          createdAt: new Date(),
-        });
-      }
-
-      // 3. Cola de sincronización para Supabase/Fallbacks
-      await db.insert(syncQueue).values({
-        action: 'SAVE_SCORE',
-        payload: JSON.stringify({ animeId: currentAnimeId, finalScore, breakdown: criteria }),
-        createdAt: new Date(),
-      });
-
-      processSyncQueue(); // Fire and forget
-
-      navigation.goBack();
-    } catch (error) {
-      console.error('Error guardando localmente:', error);
-    }
+        },
+      ],
+    );
   };
 
   const activeCriterion = criteria[currentIndex];
@@ -218,7 +251,8 @@ export default function RatingScreen({ route, navigation }: any) {
         </View>
         {mode === 'summary' && (
           <TouchableOpacity
-            className={`px-8 py-4 rounded-xl shadow-lg ${savingToAnilist ? 'bg-zinc-700' : 'bg-blue-600 shadow-blue-500/30'}`}
+            className="px-8 py-4 rounded-xl"
+            style={savingToAnilist ? ratingStyles.btnSaving : ratingStyles.btnSave}
             onPress={handleSave}
             disabled={savingToAnilist}
           >
@@ -231,3 +265,17 @@ export default function RatingScreen({ route, navigation }: any) {
     </View>
   );
 }
+
+const ratingStyles = StyleSheet.create({
+  btnSave: {
+    backgroundColor: '#2563eb',
+    shadowColor: 'rgba(59, 130, 246, 0.3)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  btnSaving: {
+    backgroundColor: '#3f3f46', // zinc-700
+  },
+});

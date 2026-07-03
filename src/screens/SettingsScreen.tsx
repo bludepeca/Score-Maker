@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useAuthStore } from '../store/useAuthStore';
 import { useThemeStore, ThemeType } from '../store/useThemeStore';
 
@@ -16,7 +16,8 @@ export default function SettingsScreen({ navigation }: any) {
     return (
       <TouchableOpacity
         onPress={() => setTheme(value)}
-        className={`p-4 border-b border-zinc-200 dark:border-zinc-800 flex-row justify-between items-center ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-zinc-900'}`}
+        className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex-row justify-between items-center"
+        style={isSelected ? settingsStyles.themeOptionSelected : settingsStyles.themeOptionDefault}
       >
         <Text
           className={`font-medium ${isSelected ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-zinc-800 dark:text-zinc-200'}`}
@@ -66,3 +67,12 @@ export default function SettingsScreen({ navigation }: any) {
     </View>
   );
 }
+
+const settingsStyles = StyleSheet.create({
+  themeOptionDefault: {
+    backgroundColor: '#ffffff', // bg-white (fallback)
+  },
+  themeOptionSelected: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)', // bg-blue-50/blue-900 approx
+  },
+});

@@ -8,14 +8,18 @@ export const GET_VIEWER = gql`
       avatar {
         large
       }
+      mediaListOptions {
+        scoreFormat
+      }
     }
   }
 `;
 
 export const GET_USER_ANIME_LIST = gql`
-  query GetUserAnimeList($userId: Int!) {
+  query GetUserAnimeList($userId: Int!, $type: MediaType) {
     Page(page: 1, perPage: 50) {
-      mediaList(userId: $userId, type: ANIME, sort: UPDATED_TIME_DESC) {
+      mediaList(userId: $userId, type: $type, sort: UPDATED_TIME_DESC) {
+        id
         status
         score
         media {

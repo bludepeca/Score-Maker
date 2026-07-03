@@ -1,3 +1,4 @@
+// @ts-ignore - NativeWind requires importing the global CSS but TS doesn't know about .css files
 import './global.css';
 import React, { useEffect } from 'react';
 import { NavigationContainer, DarkTheme, DefaultTheme, Theme } from '@react-navigation/native';
@@ -57,7 +58,8 @@ export default function App() {
     console.error('Migration error:', error);
   }
 
-  const isDark = colorScheme === 'dark' || (colorScheme === 'system' && themePref === 'system'); // Fallback if system isn't resolved immediately
+  const isDark =
+    colorScheme === 'dark' || ((colorScheme as string) === 'system' && themePref === 'system'); // Fallback if system isn't resolved immediately
   const bgColor = isDark ? '#09090b' : '#fafafa';
   const navTheme = isDark ? CustomDarkTheme : CustomLightTheme;
 

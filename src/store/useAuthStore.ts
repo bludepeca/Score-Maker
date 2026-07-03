@@ -6,9 +6,11 @@ interface AuthStoreState {
   anilistToken: string | null;
   anilistUserId: number | null;
   supabaseToken: string | null;
+  scoreFormat: string | null;
   setAnilistToken: (token: string | null) => void;
   setAnilistUserId: (id: number | null) => void;
   setSupabaseToken: (token: string | null) => void;
+  setScoreFormat: (format: string | null) => void;
   logout: () => void;
 }
 
@@ -18,10 +20,13 @@ export const useAuthStore = create<AuthStoreState>()(
       anilistToken: null,
       anilistUserId: null,
       supabaseToken: null,
+      scoreFormat: null,
       setAnilistToken: (token) => set({ anilistToken: token }),
       setAnilistUserId: (id) => set({ anilistUserId: id }),
       setSupabaseToken: (token) => set({ supabaseToken: token }),
-      logout: () => set({ anilistToken: null, supabaseToken: null, anilistUserId: null }),
+      setScoreFormat: (format) => set({ scoreFormat: format }),
+      logout: () =>
+        set({ anilistToken: null, supabaseToken: null, anilistUserId: null, scoreFormat: null }),
     }),
     {
       name: 'auth-storage',

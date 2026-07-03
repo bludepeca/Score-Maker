@@ -9,9 +9,11 @@ import {
   Modal,
   ScrollView,
   KeyboardAvoidingView,
+  StyleSheet,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { db } from '../db';
+import { autoBalanceSliders } from '../utils/calculator';
 import { criteriaPacks, criteriaItems } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import * as Crypto from 'expo-crypto';
@@ -27,7 +29,6 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
 
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [mode, setMode] = useState<'sliders' | 'manual'>('sliders');
 
   // Modal State for Explanations
   const [explModalVisible, setExplModalVisible] = useState(false);
@@ -58,14 +59,27 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
               scoreExplanations: i.scoreExplanations ? JSON.parse(i.scoreExplanations) : {},
               _localId: i.id,
               weight: Number(i.weight),
+              locked: false,
             }))
             .sort((a, b) => a.order - b.order);
           setItems(parsedItems);
         }
       } else {
         setItems([
-          { _localId: Crypto.randomUUID(), name: 'Historia', weight: 50, scoreExplanations: {} },
-          { _localId: Crypto.randomUUID(), name: 'Animación', weight: 50, scoreExplanations: {} },
+          {
+            _localId: Crypto.randomUUID(),
+            name: 'Historia',
+            weight: 50,
+            scoreExplanations: {},
+            locked: false,
+          },
+          {
+            _localId: Crypto.randomUUID(),
+            name: 'Animación',
+            weight: 50,
+            scoreExplanations: {},
+            locked: false,
+          },
         ]);
       }
       setLoading(false);
@@ -79,7 +93,13 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
   const handleAddItem = () => {
     setItems([
       ...items,
-      { _localId: Crypto.randomUUID(), name: 'Nuevo Criterio', weight: 0, scoreExplanations: {} },
+      {
+        _localId: Crypto.randomUUID(),
+        name: 'Nuevo Criterio',
+        weight: 0,
+        scoreExplanations: {},
+        locked: false,
+      },
     ]);
   };
 
@@ -97,56 +117,18 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
 
   const handleSliderChange = (index: number, val: number) => {
     let newItems = [...items];
-    const oldVal = newItems[index].weight;
-    const diff = val - oldVal;
-
-    if (diff === 0) return;
-
     newItems[index].weight = val;
-
-    // Distribute remaining (100 - val) among others
-    const remainingNeeded = 100 - val;
-
-    const otherItems = newItems
-      .map((item, idx) => ({ ...item, idx }))
-      .filter((it) => it.idx !== index);
-
-    if (otherItems.length === 0) {
-      setItems(newItems);
-      return;
-    }
-
-    const sumOthers = otherItems.reduce((acc, it) => acc + it.weight, 0);
-
-    if (sumOthers === 0) {
-      // distribute equally
-      const share = Math.floor(remainingNeeded / otherItems.length);
-      otherItems.forEach((it) => {
-        newItems[it.idx].weight = share;
-      });
-    } else {
-      // distribute proportionally
-      otherItems.forEach((it) => {
-        const proportion = it.weight / sumOthers;
-        newItems[it.idx].weight = Math.round(remainingNeeded * proportion);
-      });
-    }
-
-    // Fix rounding to exactly 100
-    const newTotal = newItems.reduce((acc, it) => acc + it.weight, 0);
-    if (newTotal !== 100) {
-      // Find largest other item to absorb rounding diff
-      const maxOther = otherItems.reduce(
-        (max, it) => (newItems[it.idx].weight > newItems[max.idx].weight ? it : max),
-        otherItems[0],
-      );
-      newItems[maxOther.idx].weight += 100 - newTotal;
-      if (newItems[maxOther.idx].weight < 0) {
-        newItems[maxOther.idx].weight = 0;
-      }
-    }
-
     setItems(newItems);
+  };
+
+  const handleToggleLock = (index: number) => {
+    let newItems = [...items];
+    newItems[index].locked = !newItems[index].locked;
+    setItems(newItems);
+  };
+
+  const handleAutoBalance = () => {
+    setItems(autoBalanceSliders(items));
   };
 
   const handleSave = async () => {
@@ -240,14 +222,33 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
       {/* Progress Bar Header */}
       <View className="px-6 py-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 shadow-sm z-10">
         <View className="flex-row justify-between items-center mb-2">
-          <Text className="text-zinc-600 dark:text-zinc-400 font-bold text-xs uppercase tracking-wider">
-            Total de Pesos
-          </Text>
-          <Text
-            className={`font-black text-xl ${currentTotal === 100 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
-          >
-            {currentTotal}%
-          </Text>
+          <View>
+            <Text className="text-zinc-600 dark:text-zinc-400 font-bold text-xs uppercase tracking-wider">
+              Total de Pesos
+            </Text>
+            {currentTotal !== 100 && (
+              <Text className="text-red-500 font-medium text-xs">
+                {currentTotal > 100
+                  ? `(Sobran ${currentTotal - 100}%)`
+                  : `(Faltan ${100 - currentTotal}%)`}
+              </Text>
+            )}
+          </View>
+          <View className="flex-row items-center gap-3">
+            {currentTotal !== 100 && (
+              <TouchableOpacity
+                onPress={handleAutoBalance}
+                className="bg-blue-600 px-3 py-1.5 rounded-full shadow-sm"
+              >
+                <Text className="text-white font-bold text-xs">✨ Auto-Balancear</Text>
+              </TouchableOpacity>
+            )}
+            <Text
+              className={`font-black text-xl ${currentTotal === 100 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
+            >
+              {currentTotal}%
+            </Text>
+          </View>
         </View>
         <View className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
           <View
@@ -255,11 +256,6 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
             style={{ width: `${Math.min(currentTotal, 100)}%` }}
           />
         </View>
-        {currentTotal !== 100 && (
-          <Text className="text-red-500 text-xs mt-2 font-medium">
-            La suma debe ser exactamente 100% para guardar.
-          </Text>
-        )}
       </View>
 
       <ScrollView
@@ -267,29 +263,7 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 350 }}
       >
-        {/* Toggle Mode */}
-        <View className="flex-row bg-zinc-200 dark:bg-zinc-800 rounded-xl p-1 mb-6">
-          <TouchableOpacity
-            className={`flex-1 py-2 items-center rounded-lg ${mode === 'sliders' ? 'bg-white dark:bg-zinc-700 shadow-sm' : ''}`}
-            onPress={() => setMode('sliders')}
-          >
-            <Text
-              className={`font-bold ${mode === 'sliders' ? 'text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-zinc-400'}`}
-            >
-              Sliders (100%)
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className={`flex-1 py-2 items-center rounded-lg ${mode === 'manual' ? 'bg-white dark:bg-zinc-700 shadow-sm' : ''}`}
-            onPress={() => setMode('manual')}
-          >
-            <Text
-              className={`font-bold ${mode === 'manual' ? 'text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-zinc-400'}`}
-            >
-              Manual (%)
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {/* Mode Toggle removed (Hybrid Slider System) */}
 
         <View className="mb-6">
           <Text className="text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-wider text-xs mb-2">
@@ -301,7 +275,8 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
             placeholder="Ej: Manga Shounen"
             placeholderTextColor="#a1a1aa"
             editable={!isDefault} // Prevents renaming the default pack
-            className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 text-zinc-900 dark:text-white font-bold text-lg ${isDefault ? 'opacity-50' : ''}`}
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 text-zinc-900 dark:text-white font-bold text-lg"
+            style={isDefault ? editorStyles.disabledInput : undefined}
           />
         </View>
 
@@ -357,48 +332,40 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
               />
             </View>
 
-            <View className="bg-zinc-50 dark:bg-zinc-950 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800 mb-3">
-              {mode === 'sliders' ? (
-                <View>
-                  <View className="flex-row justify-between mb-2">
-                    <Text className="text-zinc-500 dark:text-zinc-400 font-bold text-xs uppercase tracking-wider">
-                      Porcentaje
-                    </Text>
-                    <Text className="text-blue-600 dark:text-blue-400 font-black">
-                      {item.weight}%
-                    </Text>
-                  </View>
-                  <Slider
-                    style={{ width: '100%', height: 30 }}
-                    minimumValue={0}
-                    maximumValue={100}
-                    step={1}
-                    value={item.weight}
-                    onValueChange={(val) => handleSliderChange(index, val)}
-                    minimumTrackTintColor="#3b82f6"
-                    maximumTrackTintColor="#3f3f46"
-                    thumbTintColor="#60a5fa"
-                  />
-                </View>
-              ) : (
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-zinc-500 dark:text-zinc-400 font-bold text-xs uppercase tracking-wider">
-                    Porcentaje Exacto
+            <View
+              className="bg-zinc-50 dark:bg-zinc-950 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800 mb-3"
+              style={item.locked ? editorStyles.lockedBorder : undefined}
+            >
+              <View className="flex-row justify-between mb-2">
+                <TouchableOpacity
+                  onPress={() => handleToggleLock(index)}
+                  className="flex-row items-center"
+                >
+                  <Text className="text-lg mr-2">{item.locked ? '🔒' : '🔓'}</Text>
+                  <Text
+                    className={`font-bold text-xs uppercase tracking-wider ${item.locked ? 'text-orange-500' : 'text-zinc-500 dark:text-zinc-400'}`}
+                  >
+                    {item.locked ? 'Bloqueado' : 'Porcentaje'}
                   </Text>
-                  <View className="flex-row items-center">
-                    <TextInput
-                      value={String(item.weight)}
-                      onChangeText={(t) =>
-                        handleChangeItemText(index, 'weight', t.replace(/[^0-9]/g, ''))
-                      }
-                      keyboardType="numeric"
-                      maxLength={3}
-                      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg p-2 text-center text-zinc-900 dark:text-white font-bold text-lg w-20"
-                    />
-                    <Text className="text-zinc-400 text-lg font-bold ml-2">%</Text>
-                  </View>
-                </View>
-              )}
+                </TouchableOpacity>
+                <Text
+                  className={`font-black ${item.locked ? 'text-orange-500' : 'text-blue-600 dark:text-blue-400'}`}
+                >
+                  {item.weight}%
+                </Text>
+              </View>
+              <Slider
+                style={{ width: '100%', height: 30, opacity: item.locked ? 0.5 : 1 }}
+                minimumValue={0}
+                maximumValue={100}
+                step={1}
+                value={item.weight}
+                disabled={item.locked}
+                onValueChange={(val) => handleSliderChange(index, val)}
+                minimumTrackTintColor={item.locked ? '#f97316' : '#3b82f6'}
+                maximumTrackTintColor="#3f3f46"
+                thumbTintColor={item.locked ? '#f97316' : '#60a5fa'}
+              />
             </View>
 
             <View className="flex-row justify-between items-center border-t border-zinc-100 dark:border-zinc-800/50 pt-3">
@@ -568,3 +535,12 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
     </KeyboardAvoidingView>
   );
 }
+
+const editorStyles = StyleSheet.create({
+  disabledInput: {
+    opacity: 0.5,
+  },
+  lockedBorder: {
+    borderColor: 'rgba(249, 115, 22, 0.5)', // orange-500/50
+  },
+});

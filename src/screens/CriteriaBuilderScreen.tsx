@@ -1,34 +1,112 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { getOrSeedPacks } from '../services/packService';
+import * as Clipboard from 'expo-clipboard';
+import * as Crypto from 'expo-crypto';
+import { db } from '../db';
+import { criteriaPacks, criteriaItems, syncQueue } from '../db/schema';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { processSyncQueue } from '../services/syncService';
 
 export default function CriteriaBuilderScreen({ navigation }: any) {
   const [packs, setPacks] = useState<any[]>([]);
 
-  useEffect(() => {
-    const fetchPacks = async () => {
-      try {
-        const rows = await getOrSeedPacks();
-        setPacks(rows);
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    fetchPacks();
-  }, []);
+  const fetchPacks = async () => {
+    try {
+      const rows = await getOrSeedPacks();
+      setPacks(rows);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchPacks();
+    }, []),
+  );
 
   const handleCreateNew = () => {
-    // Alert.alert('Próximamente', 'Aquí se abrirá la pantalla para agregar y distribuir porcentajes de los criterios.');
     navigation.navigate('CriteriaEditor');
+  };
+
+  const handleImport = async () => {
+    try {
+      const text = await Clipboard.getStringAsync();
+      if (!text || !text.startsWith('score-maker-pack://')) {
+        Alert.alert('Error', 'No hay ningún pack válido en el portapapeles.');
+        return;
+      }
+
+      const base64 = text.replace('score-maker-pack://', '');
+      const jsonString = decodeURIComponent(atob(base64));
+      const packData = JSON.parse(jsonString);
+
+      if (!packData.packName || !Array.isArray(packData.items)) {
+        throw new Error('Formato inválido');
+      }
+
+      const newPackId = Crypto.randomUUID();
+
+      await db.insert(criteriaPacks).values({
+        id: newPackId,
+        name: `${packData.packName} (Importado)`,
+        description: packData.packDescription || '',
+        isDefault: false,
+        targetTypes: JSON.stringify(packData.targetTypes || []),
+        targetGenres: JSON.stringify(packData.targetGenres || []),
+      });
+
+      for (let i = 0; i < packData.items.length; i++) {
+        const item = packData.items[i];
+        await db.insert(criteriaItems).values({
+          id: Crypto.randomUUID(),
+          packId: newPackId,
+          name: item.name,
+          description: item.description || '',
+          weight: item.weight,
+          scoreExplanations: item.scoreExplanations ? JSON.stringify(item.scoreExplanations) : null,
+          order: i,
+        });
+      }
+
+      await db.insert(syncQueue).values({
+        action: 'SYNC_CRITERIA',
+        payload: JSON.stringify({ packId: newPackId }),
+        createdAt: new Date(),
+      });
+      processSyncQueue();
+
+      Alert.alert('¡Éxito!', 'Pack importado correctamente.');
+      fetchPacks();
+    } catch (e) {
+      console.error(e);
+      Alert.alert(
+        'Error',
+        'No se pudo importar el pack. Asegúrate de haber copiado el texto correcto.',
+      );
+    }
   };
 
   return (
     <View className="flex-1 bg-zinc-50 dark:bg-zinc-950 p-6 pt-12">
       <View className="flex-row justify-between items-center mb-8">
         <Text className="text-3xl font-black text-zinc-900 dark:text-white">Diseñar Criterios</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text className="text-blue-600 dark:text-blue-500 font-bold">Volver</Text>
-        </TouchableOpacity>
+        <View className="flex-row items-center gap-4">
+          <TouchableOpacity
+            onPress={handleImport}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="download-outline" size={24} color="#3b82f6" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text className="text-zinc-600 dark:text-zinc-400 font-bold">Volver</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>

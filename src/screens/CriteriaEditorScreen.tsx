@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import {
   View,
   Text,
@@ -90,9 +90,9 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
   const currentTotal = items.reduce((sum, item) => sum + (Number(item.weight) || 0), 0);
   const isValid = currentTotal === 100 && packName.trim() !== '' && items.length > 0;
 
-  const handleAddItem = () => {
-    setItems([
-      ...items,
+  const handleAddItem = useCallback(() => {
+    setItems((prev) => [
+      ...prev,
       {
         _localId: Crypto.randomUUID(),
         name: 'Nuevo Criterio',
@@ -101,35 +101,43 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
         locked: false,
       },
     ]);
-  };
+  }, []);
 
-  const handleRemoveItem = (index: number) => {
-    const newItems = [...items];
-    newItems.splice(index, 1);
-    setItems(newItems);
-  };
+  const handleRemoveItem = useCallback((index: number) => {
+    setItems((prev) => {
+      const newItems = [...prev];
+      newItems.splice(index, 1);
+      return newItems;
+    });
+  }, []);
 
-  const handleChangeItemText = (index: number, field: string, value: any) => {
-    const newItems = [...items];
-    newItems[index][field] = value;
-    setItems(newItems);
-  };
+  const handleChangeItemText = useCallback((index: number, field: string, value: any) => {
+    setItems((prev) => {
+      const newItems = [...prev];
+      newItems[index] = { ...newItems[index], [field]: value };
+      return newItems;
+    });
+  }, []);
 
-  const handleSliderChange = (index: number, val: number) => {
-    let newItems = [...items];
-    newItems[index].weight = val;
-    setItems(newItems);
-  };
+  const handleSliderChange = useCallback((index: number, val: number) => {
+    setItems((prev) => {
+      const newItems = [...prev];
+      newItems[index] = { ...newItems[index], weight: val };
+      return newItems;
+    });
+  }, []);
 
-  const handleToggleLock = (index: number) => {
-    let newItems = [...items];
-    newItems[index].locked = !newItems[index].locked;
-    setItems(newItems);
-  };
+  const handleToggleLock = useCallback((index: number) => {
+    setItems((prev) => {
+      const newItems = [...prev];
+      newItems[index] = { ...newItems[index], locked: !newItems[index].locked };
+      return newItems;
+    });
+  }, []);
 
-  const handleAutoBalance = () => {
-    setItems(autoBalanceSliders(items));
-  };
+  const handleAutoBalance = useCallback(() => {
+    setItems((prev) => autoBalanceSliders(prev));
+  }, []);
 
   const handleSave = async () => {
     if (!isValid) {
@@ -309,81 +317,19 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
         </Text>
 
         {items.map((item, index) => (
-          <View
+          <CriteriaItemCard
             key={item._localId}
-            className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 mb-4 shadow-sm"
-          >
-            <View className="mb-3">
-              <TextInput
-                value={item.name}
-                onChangeText={(t) => handleChangeItemText(index, 'name', t)}
-                placeholder="Nombre (ej: Animación)"
-                placeholderTextColor="#a1a1aa"
-                className="text-zinc-900 dark:text-white font-bold text-lg mb-2"
-              />
-              <TextInput
-                value={item.description}
-                onChangeText={(t) => handleChangeItemText(index, 'description', t)}
-                placeholder="Descripción opcional"
-                placeholderTextColor="#a1a1aa"
-                multiline
-                style={{ minHeight: 60, textAlignVertical: 'top' }}
-                className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 rounded-lg p-3 text-zinc-700 dark:text-zinc-300 text-sm"
-              />
-            </View>
-
-            <View
-              className="bg-zinc-50 dark:bg-zinc-950 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800 mb-3"
-              style={item.locked ? editorStyles.lockedBorder : undefined}
-            >
-              <View className="flex-row justify-between mb-2">
-                <TouchableOpacity
-                  onPress={() => handleToggleLock(index)}
-                  className="flex-row items-center"
-                >
-                  <Text className="text-lg mr-2">{item.locked ? '🔒' : '🔓'}</Text>
-                  <Text
-                    className={`font-bold text-xs uppercase tracking-wider ${item.locked ? 'text-orange-500' : 'text-zinc-500 dark:text-zinc-400'}`}
-                  >
-                    {item.locked ? 'Bloqueado' : 'Porcentaje'}
-                  </Text>
-                </TouchableOpacity>
-                <Text
-                  className={`font-black ${item.locked ? 'text-orange-500' : 'text-blue-600 dark:text-blue-400'}`}
-                >
-                  {item.weight}%
-                </Text>
-              </View>
-              <Slider
-                style={{ width: '100%', height: 30, opacity: item.locked ? 0.5 : 1 }}
-                minimumValue={0}
-                maximumValue={100}
-                step={1}
-                value={item.weight}
-                disabled={item.locked}
-                onValueChange={(val) => handleSliderChange(index, val)}
-                minimumTrackTintColor={item.locked ? '#f97316' : '#3b82f6'}
-                maximumTrackTintColor="#3f3f46"
-                thumbTintColor={item.locked ? '#f97316' : '#60a5fa'}
-              />
-            </View>
-
-            <View className="flex-row justify-between items-center border-t border-zinc-100 dark:border-zinc-800/50 pt-3">
-              <TouchableOpacity
-                onPress={() => {
-                  setActiveItemIndex(index);
-                  setExplModalVisible(true);
-                }}
-              >
-                <Text className="text-blue-600 dark:text-blue-400 font-bold text-sm">
-                  💬 Frases ({Object.keys(item.scoreExplanations).length})
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleRemoveItem(index)}>
-                <Text className="text-red-500 font-bold text-sm">Eliminar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+            item={item}
+            index={index}
+            handleChangeItemText={handleChangeItemText}
+            handleToggleLock={handleToggleLock}
+            handleSliderChange={handleSliderChange}
+            handleRemoveItem={handleRemoveItem}
+            onShowExplanations={(idx: number) => {
+              setActiveItemIndex(idx);
+              setExplModalVisible(true);
+            }}
+          />
         ))}
 
         <TouchableOpacity
@@ -544,3 +490,87 @@ const editorStyles = StyleSheet.create({
     borderColor: 'rgba(249, 115, 22, 0.5)', // orange-500/50
   },
 });
+
+// Extracted memoized component for optimal slider performance
+const CriteriaItemCard = memo(
+  ({
+    item,
+    index,
+    handleChangeItemText,
+    handleToggleLock,
+    handleSliderChange,
+    handleRemoveItem,
+    onShowExplanations,
+  }: any) => {
+    return (
+      <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 mb-4 shadow-sm">
+        <View className="mb-3">
+          <TextInput
+            value={item.name}
+            onChangeText={(t) => handleChangeItemText(index, 'name', t)}
+            placeholder="Nombre (ej: Animación)"
+            placeholderTextColor="#a1a1aa"
+            className="text-zinc-900 dark:text-white font-bold text-lg mb-2"
+          />
+          <TextInput
+            value={item.description}
+            onChangeText={(t) => handleChangeItemText(index, 'description', t)}
+            placeholder="Descripción opcional"
+            placeholderTextColor="#a1a1aa"
+            multiline
+            style={{ minHeight: 60, textAlignVertical: 'top' }}
+            className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 rounded-lg p-3 text-zinc-700 dark:text-zinc-300 text-sm"
+          />
+        </View>
+
+        <View
+          className="bg-zinc-50 dark:bg-zinc-950 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800 mb-3"
+          style={item.locked ? editorStyles.lockedBorder : undefined}
+        >
+          <View className="flex-row justify-between mb-2">
+            <TouchableOpacity
+              onPress={() => handleToggleLock(index)}
+              className="flex-row items-center"
+            >
+              <Text className="text-lg mr-2">{item.locked ? '🔒' : '🔓'}</Text>
+              <Text
+                className={`font-bold text-xs uppercase tracking-wider ${item.locked ? 'text-orange-500' : 'text-zinc-500 dark:text-zinc-400'}`}
+              >
+                {item.locked ? 'Bloqueado' : 'Porcentaje'}
+              </Text>
+            </TouchableOpacity>
+            <Text
+              className={`font-black ${item.locked ? 'text-orange-500' : 'text-blue-600 dark:text-blue-400'}`}
+            >
+              {item.weight}%
+            </Text>
+          </View>
+          <Slider
+            style={{ width: '100%', height: 30, opacity: item.locked ? 0.5 : 1 }}
+            minimumValue={0}
+            maximumValue={100}
+            step={1}
+            value={item.weight}
+            disabled={item.locked}
+            onValueChange={(val) => handleSliderChange(index, val)}
+            minimumTrackTintColor={item.locked ? '#f97316' : '#3b82f6'}
+            maximumTrackTintColor="#3f3f46"
+            thumbTintColor={item.locked ? '#f97316' : '#60a5fa'}
+          />
+        </View>
+
+        <View className="flex-row justify-between items-center border-t border-zinc-100 dark:border-zinc-800/50 pt-3">
+          <TouchableOpacity onPress={() => onShowExplanations(index)}>
+            <Text className="text-blue-600 dark:text-blue-400 font-bold text-sm">
+              💬 Frases ({Object.keys(item.scoreExplanations).length})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleRemoveItem(index)}>
+            <Text className="text-red-500 font-bold text-sm">Eliminar</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  },
+  (prevProps, nextProps) => prevProps.item === nextProps.item,
+);

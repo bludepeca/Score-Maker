@@ -3,21 +3,30 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useAuthStore } from '../store/useAuthStore';
 import { useThemeStore, ThemeType } from '../store/useThemeStore';
 
+import { useColorScheme } from 'nativewind';
+
 export default function SettingsScreen({ navigation }: any) {
   const logout = useAuthStore((state) => state.logout);
   const { theme, setTheme } = useThemeStore();
+  const { colorScheme } = useColorScheme();
 
   const handleLogout = () => {
     logout();
   };
 
+  const isDark = colorScheme === 'dark';
+
   const ThemeOption = ({ value, label }: { value: ThemeType; label: string }) => {
     const isSelected = theme === value;
+
+    // Fix: Dynamically set background color based on theme and selection
+    const backgroundColor = isSelected ? 'rgba(59, 130, 246, 0.1)' : isDark ? '#18181b' : '#ffffff'; // zinc-900 / white
+
     return (
       <TouchableOpacity
         onPress={() => setTheme(value)}
         className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex-row justify-between items-center"
-        style={isSelected ? settingsStyles.themeOptionSelected : settingsStyles.themeOptionDefault}
+        style={{ backgroundColor }}
       >
         <Text
           className={`font-medium ${isSelected ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-zinc-800 dark:text-zinc-200'}`}

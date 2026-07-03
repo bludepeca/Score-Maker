@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import {
   View,
   Text,
@@ -83,84 +83,28 @@ export default function HomeScreen({ navigation }: any) {
   useEffect(() => {
     // Carga inicial al montar
     fetchLocalScores();
+
+    // Descargar criterios desde Supabase
+    import('../services/syncService').then((module) => {
+      module.downloadCriteriaConfig();
+    });
+
     // Re-carga cada vez que la pantalla vuelve a estar en foco
-    const unsubscribe = navigation.addListener('focus', fetchLocalScores);
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchLocalScores();
+    });
     return unsubscribe;
   }, [navigation, fetchLocalScores]);
 
-  const renderAnimeItem = ({ item }: any) => {
-    const anime = item?.media;
-    if (!anime) return null; // Safe guard
-
-    const statusTranslate: Record<string, string> = {
-      CURRENT: 'Viendo',
-      COMPLETED: 'Completado',
-      PAUSED: 'Pausado',
-      DROPPED: 'Abandonado',
-      PLANNING: 'Planeado',
-    };
-
-    const localScore = localScores[anime.id];
-    const anilistScore = item.score;
-    const hasLocal = localScore !== undefined;
-    const displayScore = hasLocal ? localScore : anilistScore;
-
-    return (
-      <TouchableOpacity
-        className="flex-row bg-white dark:bg-zinc-900 rounded-2xl mb-4 overflow-hidden border border-zinc-200 dark:border-zinc-800"
-        style={styles.cardShadow}
-        onPress={() =>
-          navigation.navigate('AnimeDetail', {
-            anime,
-            hasLocal,
-            localScore,
-            anilistScore,
-            displayScore,
-          })
-        }
-      >
-        <Image
-          source={{ uri: anime.coverImage?.large || 'https://via.placeholder.com/150' }}
-          className="w-24 h-36 bg-zinc-200 dark:bg-zinc-800"
-          resizeMode="cover"
-        />
-        <View className="flex-1 p-4 justify-center">
-          <Text className="text-zinc-900 dark:text-white font-bold text-lg mb-1" numberOfLines={2}>
-            {anime.title?.romaji || 'Desconocido'}
-          </Text>
-          <Text className="text-zinc-500 dark:text-zinc-400 text-sm mb-3">
-            {statusTranslate[item.status] || item.status || 'Desconocido'} •{' '}
-            {anime.episodes ? `${anime.episodes} eps` : '? eps'}
-          </Text>
-          <View className="flex-row items-center justify-between">
-            {displayScore > 0 ? (
-              <View
-                className="px-3 py-1 rounded-full border"
-                style={hasLocal ? styles.localScoreBadge : styles.anilistScoreBadge}
-              >
-                <Text
-                  className={`${hasLocal ? 'text-blue-400' : 'text-green-400'} font-bold text-xs`}
-                >
-                  {hasLocal ? `Local: ${displayScore}` : `AniList: ${displayScore}`}
-                </Text>
-              </View>
-            ) : (
-              <View className="bg-zinc-100 dark:bg-zinc-800 px-3 py-1 rounded-full border border-zinc-200 dark:border-zinc-700">
-                <Text className="text-zinc-500 dark:text-zinc-400 font-bold text-xs">
-                  Sin puntuar
-                </Text>
-              </View>
-            )}
-            <View className="bg-zinc-100 dark:bg-zinc-800 px-3 py-1 rounded-full border border-zinc-200 dark:border-zinc-700 ml-2">
-              <Text className="text-zinc-700 dark:text-zinc-300 font-bold text-xs">
-                {hasLocal ? 'Editar Nota' : 'Puntuar ahora'}
-              </Text>
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
+  const renderAnimeItem = useCallback(
+    ({ item }: any) => {
+      const anime = item?.media;
+      if (!anime) return null;
+      const localScore = localScores[anime.id];
+      return <AnimeItemCard item={item} localScore={localScore} navigation={navigation} />;
+    },
+    [localScores, navigation],
+  );
 
   const isLoading = viewerLoading || (activeTab === 'ANIME' ? animeLoading : mangaLoading);
   const error = viewerError || (activeTab === 'ANIME' ? animeError : mangaError);
@@ -282,9 +226,10 @@ export default function HomeScreen({ navigation }: any) {
               keyExtractor={(item, index) => item?.media?.id?.toString() || `anime-${index}`}
               renderItem={renderAnimeItem}
               showsVerticalScrollIndicator={false}
-              initialNumToRender={10}
-              maxToRenderPerBatch={10}
-              windowSize={5}
+              initialNumToRender={5}
+              maxToRenderPerBatch={5}
+              windowSize={3}
+              removeClippedSubviews={true}
             />
           </View>
           <View className="flex-1" style={{ display: activeTab === 'MANGA' ? 'flex' : 'none' }}>
@@ -293,9 +238,10 @@ export default function HomeScreen({ navigation }: any) {
               keyExtractor={(item, index) => item?.media?.id?.toString() || `manga-${index}`}
               renderItem={renderAnimeItem}
               showsVerticalScrollIndicator={false}
-              initialNumToRender={10}
-              maxToRenderPerBatch={10}
-              windowSize={5}
+              initialNumToRender={5}
+              maxToRenderPerBatch={5}
+              windowSize={3}
+              removeClippedSubviews={true}
             />
           </View>
         </View>
@@ -335,7 +281,82 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(59, 130, 246, 0.3)', // blue-500/30
   },
   anilistScoreBadge: {
-    backgroundColor: 'rgba(22, 163, 74, 0.2)', // green-600/20
-    borderColor: 'rgba(34, 197, 94, 0.3)', // green-500/30
+    backgroundColor: 'rgba(74, 222, 128, 0.1)',
+    borderColor: 'rgba(74, 222, 128, 0.2)',
   },
 });
+
+const AnimeItemCard = memo(
+  ({ item, localScore, navigation }: any) => {
+    const anime = item?.media;
+    const statusTranslate: Record<string, string> = {
+      CURRENT: 'Viendo',
+      COMPLETED: 'Completado',
+      PAUSED: 'Pausado',
+      DROPPED: 'Abandonado',
+      PLANNING: 'Planeado',
+    };
+
+    const anilistScore = item.score;
+    const hasLocal = localScore !== undefined;
+    const displayScore = hasLocal ? localScore : anilistScore;
+
+    return (
+      <TouchableOpacity
+        className="flex-row bg-white dark:bg-zinc-900 rounded-2xl mb-4 overflow-hidden border border-zinc-200 dark:border-zinc-800"
+        style={styles.cardShadow}
+        onPress={() =>
+          navigation.navigate('AnimeDetail', {
+            anime,
+            hasLocal,
+            localScore,
+            anilistScore,
+            displayScore,
+          })
+        }
+      >
+        <Image
+          source={{ uri: anime.coverImage?.large || 'https://via.placeholder.com/150' }}
+          className="w-24 h-36 bg-zinc-200 dark:bg-zinc-800"
+          resizeMode="cover"
+        />
+        <View className="flex-1 p-4 justify-center">
+          <Text className="text-zinc-900 dark:text-white font-bold text-lg mb-1" numberOfLines={2}>
+            {anime.title?.romaji || 'Desconocido'}
+          </Text>
+          <Text className="text-zinc-500 dark:text-zinc-400 text-sm mb-3">
+            {statusTranslate[item.status] || item.status || 'Desconocido'} •{' '}
+            {anime.episodes ? `${anime.episodes} eps` : '? eps'}
+          </Text>
+          <View className="flex-row items-center justify-between">
+            {displayScore > 0 ? (
+              <View
+                className="px-3 py-1 rounded-full border"
+                style={hasLocal ? styles.localScoreBadge : styles.anilistScoreBadge}
+              >
+                <Text
+                  className={`${hasLocal ? 'text-blue-400' : 'text-green-400'} font-bold text-xs`}
+                >
+                  {hasLocal ? `Local: ${displayScore}` : `AniList: ${displayScore}`}
+                </Text>
+              </View>
+            ) : (
+              <View className="bg-zinc-100 dark:bg-zinc-800 px-3 py-1 rounded-full border border-zinc-200 dark:border-zinc-700">
+                <Text className="text-zinc-500 dark:text-zinc-400 font-bold text-xs">
+                  Sin puntuar
+                </Text>
+              </View>
+            )}
+            <View className="bg-zinc-100 dark:bg-zinc-800 px-3 py-1 rounded-full border border-zinc-200 dark:border-zinc-700 ml-2">
+              <Text className="text-zinc-700 dark:text-zinc-300 font-bold text-xs">
+                {hasLocal ? 'Editar Nota' : 'Puntuar ahora'}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  },
+  (prevProps, nextProps) =>
+    prevProps.item === nextProps.item && prevProps.localScore === nextProps.localScore,
+);

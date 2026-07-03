@@ -17,6 +17,8 @@ import { autoBalanceSliders } from '../utils/calculator';
 import { criteriaPacks, criteriaItems } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import * as Crypto from 'expo-crypto';
+import * as Clipboard from 'expo-clipboard';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function CriteriaEditorScreen({ route, navigation }: any) {
   const { packId } = route?.params || {};
@@ -29,6 +31,37 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
 
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const handleExport = async () => {
+    try {
+      const exportData = {
+        packName,
+        packDescription,
+        targetTypes,
+        targetGenres,
+        items: items.map((i) => ({
+          name: i.name,
+          description: i.description,
+          weight: i.weight,
+          scoreExplanations: i.scoreExplanations,
+        })),
+      };
+
+      const jsonString = JSON.stringify(exportData);
+      // Codificar a base64 para que sea un solo string fácil de compartir (sin caracteres raros)
+      const base64 = btoa(encodeURIComponent(jsonString));
+      const shareText = `score-maker-pack://${base64}`;
+
+      await Clipboard.setStringAsync(shareText);
+      Alert.alert(
+        '¡Copiado!',
+        'El pack ha sido copiado a tu portapapeles. Podés pegarlo en cualquier lado para compartirlo.',
+      );
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'Hubo un problema exportando el pack.');
+    }
+  };
 
   // Modal State for Explanations
   const [explModalVisible, setExplModalVisible] = useState(false);
@@ -190,6 +223,16 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
         });
       }
 
+      // 4. Trigger Sync to Supabase
+      const { syncQueue } = await import('../db/schema');
+      const { processSyncQueue } = await import('../services/syncService');
+      await db.insert(syncQueue).values({
+        action: 'SYNC_CRITERIA',
+        payload: JSON.stringify({ packId: finalPackId }),
+        createdAt: new Date(),
+      });
+      processSyncQueue(); // Fire and forget
+
       Alert.alert('Éxito', 'Pack guardado correctamente.', [
         { text: 'OK', onPress: () => navigation?.goBack() },
       ]);
@@ -212,19 +255,30 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
       className="flex-1 bg-zinc-50 dark:bg-zinc-950"
     >
       <View className="pt-12 px-6 pb-4 flex-row justify-between items-center bg-zinc-50 dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800">
-        <TouchableOpacity onPress={() => navigation?.goBack()}>
-          <Text className="text-blue-600 dark:text-blue-500 font-bold">Cancelar</Text>
+        <TouchableOpacity
+          onPress={() => navigation?.goBack()}
+          hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+        >
+          <Text className="text-zinc-600 dark:text-zinc-400 font-bold">Cancelar</Text>
         </TouchableOpacity>
         <Text className="text-lg font-bold text-zinc-900 dark:text-white">
           {packId ? 'Editar Pack' : 'Nuevo Pack'}
         </Text>
-        <TouchableOpacity
-          onPress={handleSave}
-          disabled={!isValid}
-          className={isValid ? 'opacity-100' : 'opacity-50'}
-        >
-          <Text className="text-blue-600 dark:text-blue-500 font-bold">Guardar</Text>
-        </TouchableOpacity>
+        <View className="flex-row items-center gap-4">
+          <TouchableOpacity
+            onPress={handleExport}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="share-outline" size={24} color="#3b82f6" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleSave}
+            disabled={!isValid}
+            className={isValid ? 'opacity-100' : 'opacity-50'}
+          >
+            <Text className="text-blue-600 dark:text-blue-500 font-bold">Guardar</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Progress Bar Header */}

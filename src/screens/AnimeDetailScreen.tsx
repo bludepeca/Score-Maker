@@ -10,6 +10,24 @@ export default function AnimeDetailScreen({ route, navigation }: any) {
   useEffect(() => {
     const fetchPacks = async () => {
       try {
+        const { db } = await import('../db');
+        const { scores } = await import('../db/schema');
+        const { eq } = await import('drizzle-orm');
+
+        // Check if there is a previous score
+        const existingScore = await db.select().from(scores).where(eq(scores.animeId, anime.id));
+        let previousPackId: string | null = null;
+        if (existingScore.length > 0) {
+          try {
+            const breakdown = JSON.parse(existingScore[0].breakdown);
+            if (breakdown.length > 0 && breakdown[0].packId) {
+              previousPackId = breakdown[0].packId;
+            }
+          } catch (e) {
+            console.error('Error parsing breakdown:', e);
+          }
+        }
+
         const rows = await getOrSeedPacks();
         const validPacks = rows.filter((pack) => {
           let typeMatch = true;
@@ -33,7 +51,16 @@ export default function AnimeDetailScreen({ route, navigation }: any) {
         });
 
         setPacks(validPacks);
-        const defaultPack = validPacks.find((p) => p.isDefault) || validPacks[0];
+
+        let defaultPack = validPacks[0];
+        if (previousPackId) {
+          const found = validPacks.find((p) => p.id === previousPackId);
+          if (found) defaultPack = found;
+        } else {
+          const found = validPacks.find((p) => p.isDefault);
+          if (found) defaultPack = found;
+        }
+
         if (defaultPack) {
           setSelectedPackId(defaultPack.id);
         }

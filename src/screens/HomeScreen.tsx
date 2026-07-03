@@ -41,12 +41,21 @@ export default function HomeScreen({ navigation }: any) {
   const [activeTab, setActiveTab] = useState<'ANIME' | 'MANGA'>('ANIME');
 
   const {
-    data: listData,
-    loading: listLoading,
-    error: listError,
+    data: animeData,
+    loading: animeLoading,
+    error: animeError,
   } = useQuery<any>(GET_USER_ANIME_LIST, {
-    variables: { userId, type: activeTab },
-    skip: !userId, // Apollo no ejecutará esta query hasta que userId tenga un valor
+    variables: { userId, type: 'ANIME' },
+    skip: !userId,
+  });
+
+  const {
+    data: mangaData,
+    loading: mangaLoading,
+    error: mangaError,
+  } = useQuery<any>(GET_USER_ANIME_LIST, {
+    variables: { userId, type: 'MANGA' },
+    skip: !userId,
   });
 
   const handleLogout = () => {
@@ -153,48 +162,47 @@ export default function HomeScreen({ navigation }: any) {
     );
   };
 
-  const isLoading = viewerLoading || listLoading;
-  const error = viewerError || listError;
+  const isLoading = viewerLoading || (activeTab === 'ANIME' ? animeLoading : mangaLoading);
+  const error = viewerError || (activeTab === 'ANIME' ? animeError : mangaError);
 
-  let mediaList = listData?.Page?.mediaList || [];
+  // Sorting function
+  const sortMediaList = (list: any[]) => {
+    return [...list].sort((a: any, b: any) => {
+      const aMedia = a?.media;
+      const bMedia = b?.media;
+      if (!aMedia) return 1;
+      if (!bMedia) return -1;
 
-  // Sort:
-  // 1. Unscored COMPLETED
-  // 2. Unscored CURRENT
-  // 3. Unscored OTHERS
-  // 4. Scored (bottom)
-  mediaList = [...mediaList].sort((a: any, b: any) => {
-    const aMedia = a?.media;
-    const bMedia = b?.media;
-    if (!aMedia) return 1;
-    if (!bMedia) return -1;
+      const aLocal = localScores[aMedia.id];
+      const bLocal = localScores[bMedia.id];
+      const aHasScore = aLocal !== undefined || (a.score && a.score > 0);
+      const bHasScore = bLocal !== undefined || (b.score && b.score > 0);
 
-    const aLocal = localScores[aMedia.id];
-    const bLocal = localScores[bMedia.id];
-    const aHasScore = aLocal !== undefined || (a.score && a.score > 0);
-    const bHasScore = bLocal !== undefined || (b.score && b.score > 0);
-
-    if (aHasScore !== bHasScore) {
-      return aHasScore ? 1 : -1; // Unscored first
-    }
-
-    if (!aHasScore && !bHasScore) {
-      const statusWeight: Record<string, number> = {
-        COMPLETED: 5,
-        CURRENT: 4,
-        PAUSED: 3,
-        DROPPED: 2,
-        PLANNING: 1,
-      };
-      const aWeight = statusWeight[a.status] || 0;
-      const bWeight = statusWeight[b.status] || 0;
-      if (aWeight !== bWeight) {
-        return bWeight - aWeight;
+      if (aHasScore !== bHasScore) {
+        return aHasScore ? 1 : -1; // Unscored first
       }
-    }
 
-    return 0; // Keep original order for same group
-  });
+      if (!aHasScore && !bHasScore) {
+        const statusWeight: Record<string, number> = {
+          COMPLETED: 5,
+          CURRENT: 4,
+          PAUSED: 3,
+          DROPPED: 2,
+          PLANNING: 1,
+        };
+        const aWeight = statusWeight[a.status] || 0;
+        const bWeight = statusWeight[b.status] || 0;
+        if (aWeight !== bWeight) {
+          return bWeight - aWeight;
+        }
+      }
+
+      return 0; // Keep original order for same group
+    });
+  };
+
+  const animeList = sortMediaList(animeData?.Page?.mediaList || []);
+  const mangaList = sortMediaList(mangaData?.Page?.mediaList || []);
 
   return (
     <View className="flex-1 bg-zinc-50 dark:bg-zinc-950 p-6 pt-12">
@@ -254,7 +262,7 @@ export default function HomeScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      {/* LISTADO */}
+      {/* LISTADOS: Ambos renderizados para un switch instantáneo */}
       {isLoading ? (
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#3b82f6" />
@@ -267,12 +275,30 @@ export default function HomeScreen({ navigation }: any) {
           </Text>
         </View>
       ) : (
-        <FlatList
-          data={mediaList}
-          keyExtractor={(item, index) => item?.media?.id?.toString() || `fallback-${index}`}
-          renderItem={renderAnimeItem}
-          showsVerticalScrollIndicator={false}
-        />
+        <View className="flex-1 relative">
+          <View className="flex-1" style={{ display: activeTab === 'ANIME' ? 'flex' : 'none' }}>
+            <FlatList
+              data={animeList}
+              keyExtractor={(item, index) => item?.media?.id?.toString() || `anime-${index}`}
+              renderItem={renderAnimeItem}
+              showsVerticalScrollIndicator={false}
+              initialNumToRender={10}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+            />
+          </View>
+          <View className="flex-1" style={{ display: activeTab === 'MANGA' ? 'flex' : 'none' }}>
+            <FlatList
+              data={mangaList}
+              keyExtractor={(item, index) => item?.media?.id?.toString() || `manga-${index}`}
+              renderItem={renderAnimeItem}
+              showsVerticalScrollIndicator={false}
+              initialNumToRender={10}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+            />
+          </View>
+        </View>
       )}
     </View>
   );

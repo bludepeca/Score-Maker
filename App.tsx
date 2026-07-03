@@ -80,68 +80,70 @@ export default function App() {
 
   return (
     <ApolloProvider client={apolloClient}>
-      <NavigationContainer theme={navTheme}>
-        <StatusBar style={isDark ? 'light' : 'dark'} />
-        <Stack.Navigator
-          screenOptions={{ headerShown: false, contentStyle: { backgroundColor: bgColor } }}
-        >
-          {anilistToken ? (
-            <>
-              <Stack.Screen name="Home" component={HomeScreen} />
-              <Stack.Screen
-                name="AnimeDetail"
-                component={AnimeDetailScreen}
-                options={{
-                  headerShown: false,
-                  presentation: 'modal',
-                }}
-              />
-              <Stack.Screen
-                name="Rating"
-                component={RatingScreen}
-                options={{
-                  headerShown: true,
-                  headerStyle: { backgroundColor: bgColor },
-                  headerTintColor: isDark ? '#fff' : '#000',
-                  title: 'Evaluación',
-                }}
-              />
-              <Stack.Screen
-                name="CriteriaBuilder"
-                component={CriteriaBuilderScreen}
-                options={{
-                  headerShown: true,
-                  headerStyle: { backgroundColor: bgColor },
-                  headerTintColor: isDark ? '#fff' : '#000',
-                  title: 'Packs de Criterios',
-                  presentation: 'modal',
-                }}
-              />
-              <Stack.Screen
-                name="CriteriaEditor"
-                component={CriteriaEditorScreen}
-                options={{
-                  headerShown: false,
-                  presentation: 'modal',
-                }}
-              />
-              <Stack.Screen
-                name="Settings"
-                component={SettingsScreen}
-                options={{
-                  headerShown: true,
-                  headerStyle: { backgroundColor: bgColor },
-                  headerTintColor: isDark ? '#fff' : '#000',
-                  title: 'Ajustes',
-                  presentation: 'modal',
-                }}
-              />
-            </>
-          ) : (
-            <Stack.Screen name="Login" component={LoginScreen} />
-          )}
-        </Stack.Navigator>
-      </NavigationContainer>
+      <View style={{ flex: 1, backgroundColor: bgColor }}>
+        <NavigationContainer theme={navTheme}>
+          <StatusBar style={isDark ? 'light' : 'dark'} />
+          <Stack.Navigator
+            screenOptions={{ headerShown: false, contentStyle: { backgroundColor: bgColor } }}
+          >
+            {anilistToken ? (
+              <>
+                <Stack.Screen name="Home" component={HomeScreen} />
+                <Stack.Screen
+                  name="AnimeDetail"
+                  component={AnimeDetailScreen}
+                  options={{
+                    headerShown: false,
+                    presentation: 'modal',
+                  }}
+                />
+                <Stack.Screen
+                  name="Rating"
+                  component={RatingScreen}
+                  options={{
+                    headerShown: true,
+                    headerStyle: { backgroundColor: bgColor },
+                    headerTintColor: isDark ? '#fff' : '#000',
+                    title: 'Evaluación',
+                  }}
+                />
+                <Stack.Screen
+                  name="CriteriaBuilder"
+                  component={CriteriaBuilderScreen}
+                  options={{
+                    headerShown: true,
+                    headerStyle: { backgroundColor: bgColor },
+                    headerTintColor: isDark ? '#fff' : '#000',
+                    title: 'Packs de Criterios',
+                    presentation: 'modal',
+                  }}
+                />
+                <Stack.Screen
+                  name="CriteriaEditor"
+                  component={CriteriaEditorScreen}
+                  options={{
+                    headerShown: false,
+                    presentation: 'modal',
+                  }}
+                />
+                <Stack.Screen
+                  name="Settings"
+                  component={SettingsScreen}
+                  options={{
+                    headerShown: true,
+                    headerStyle: { backgroundColor: bgColor },
+                    headerTintColor: isDark ? '#fff' : '#000',
+                    title: 'Ajustes',
+                    presentation: 'modal',
+                  }}
+                />
+              </>
+            ) : (
+              <Stack.Screen name="Login" component={LoginScreen} />
+            )}
+          </Stack.Navigator>
+        </NavigationContainer>
+      </View>
     </ApolloProvider>
   );
 }

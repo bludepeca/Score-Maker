@@ -42,6 +42,8 @@ export const processSyncQueue = async () => {
               anime_id: payload.animeId,
               final_score: payload.finalScore,
               breakdown: payload.breakdown,
+              pack_id: payload.packId,
+              pack_snapshot: payload.packSnapshot,
             },
             { onConflict: 'anilist_user_id, anime_id' },
           );

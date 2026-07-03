@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
 import Slider from '@react-native-community/slider';
 import * as Haptics from 'expo-haptics';
 
@@ -55,7 +55,12 @@ export default function CriterionCard({
   const currentExplanation = getExplanation();
 
   return (
-    <View style={{ width }} className="flex-1 items-center justify-center p-6">
+    <ScrollView
+      style={{ width }}
+      className="flex-1"
+      contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
+      showsVerticalScrollIndicator={false}
+    >
       <View className="w-full bg-white dark:bg-zinc-900 rounded-3xl p-8 border border-zinc-200 dark:border-zinc-800 shadow-xl dark:shadow-2xl">
         <View className="flex-row justify-between items-start mb-8">
           <View className="flex-1 pr-4">
@@ -78,7 +83,7 @@ export default function CriterionCard({
             {score}
           </Text>
           <Text className="text-zinc-500 font-bold uppercase tracking-widest mt-2">Puntuación</Text>
-          <View className="h-12 justify-center mt-2 px-2 w-full">
+          <View className="min-h-[48px] justify-center mt-2 px-2 w-full">
             <Text className="text-blue-400 italic font-bold text-center">
               {currentExplanation ? `"${currentExplanation}"` : ' '}
             </Text>
@@ -126,6 +131,6 @@ export default function CriterionCard({
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }

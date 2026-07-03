@@ -155,7 +155,7 @@ export default function AnimeDetailScreen({ route, navigation }: any) {
               <Text className="text-white font-bold">← Volver</Text>
             </TouchableOpacity>
           </View>
-          <View className="absolute bottom-[-40] left-6 flex-row items-end">
+          <View className="absolute bottom-[-40] left-6 right-6 flex-row items-end">
             <Image
               source={{ uri: anime.coverImage.large }}
               className="w-28 h-40 rounded-xl border-4 border-zinc-50 dark:border-zinc-950 bg-zinc-300 dark:bg-zinc-800"

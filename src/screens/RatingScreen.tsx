@@ -20,6 +20,7 @@ import { useAuthStore } from '../store/useAuthStore';
 export default function RatingScreen({ route, navigation }: any) {
   const initialCriteria = DEFAULT_PACKS.find((p) => p.id === 'anime_general')?.criteria || [];
   const scoreFormat = useAuthStore((state) => state.scoreFormat);
+  const anilistToken = useAuthStore((state) => state.anilistToken);
 
   const [criteria, setCriteria] = useState<Criterion[]>(initialCriteria);
   const [finalScore, setFinalScore] = useState(0);
@@ -118,98 +119,83 @@ export default function RatingScreen({ route, navigation }: any) {
     setMode('wizard');
   };
 
-  const handleSave = async () => {
-    Alert.alert(
-      'Guardar Puntuación',
-      '¿Deseas guardar esta nota localmente y sincronizarla con AniList?',
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: 'Guardar',
-          onPress: async () => {
-            try {
-              const currentAnimeId = route.params?.animeId || 1;
+  const handleSave = async (syncToAnilist: boolean) => {
+    try {
+      const currentAnimeId = route.params?.animeId || 1;
 
-              // 1. Intentar guardar en AniList directamente
-              try {
-                const rawScoreToSave = scoreFormat
-                  ? convertToAnilistScale(finalScore, scoreFormat as any)
-                  : finalScore;
+      if (syncToAnilist) {
+        // 1. Intentar guardar en AniList directamente
+        try {
+          const rawScoreToSave = scoreFormat
+            ? convertToAnilistScale(finalScore, scoreFormat as any)
+            : finalScore;
 
-                await saveToAnilist({
-                  variables: {
-                    mediaId: currentAnimeId,
-                    score: rawScoreToSave,
-                  },
-                });
-                console.log('Guardado en AniList correctamente.');
-              } catch (anilistError) {
-                console.error('Error guardando en AniList:', anilistError);
-                Alert.alert(
-                  'Error de conexión',
-                  'No se pudo guardar la nota en AniList en este momento. Se intentará sincronizar más tarde.',
-                );
-              }
+          await saveToAnilist({
+            variables: {
+              mediaId: currentAnimeId,
+              score: rawScoreToSave,
+            },
+          });
+          console.log('Guardado en AniList correctamente.');
+        } catch (anilistError) {
+          console.error('Error guardando en AniList:', anilistError);
+          Alert.alert(
+            'Error de conexión',
+            'No se pudo guardar la nota en AniList en este momento. La app intentará sincronizarla más tarde.',
+          );
+        }
+      }
 
-              // 2. Guardar en SQLite local
-              const currentPack = route.params?.packData;
-              const realPackId = currentPack?.isPseudo
-                ? currentPack.id.replace('snapshot_', '')
-                : currentPack?.id || null;
+      // 2. Guardar en SQLite local
+      const currentPack = route.params?.packData;
+      const realPackId = currentPack?.isPseudo
+        ? currentPack.id.replace('snapshot_', '')
+        : currentPack?.id || null;
 
-              const existing = await db
-                .select()
-                .from(scores)
-                .where(eq(scores.animeId, currentAnimeId));
-              if (existing.length > 0) {
-                await db
-                  .update(scores)
-                  .set({
-                    calculatedScore: finalScore,
-                    finalScore: finalScore,
-                    breakdown: JSON.stringify(criteria),
-                    packId: realPackId,
-                    packSnapshot: currentPack ? JSON.stringify(currentPack) : null,
-                  })
-                  .where(eq(scores.animeId, currentAnimeId));
-              } else {
-                await db.insert(scores).values({
-                  animeId: currentAnimeId,
-                  calculatedScore: finalScore,
-                  finalScore: finalScore,
-                  breakdown: JSON.stringify(criteria),
-                  packId: realPackId,
-                  packSnapshot: currentPack ? JSON.stringify(currentPack) : null,
-                  createdAt: new Date(),
-                });
-              }
+      const existing = await db.select().from(scores).where(eq(scores.animeId, currentAnimeId));
+      if (existing.length > 0) {
+        await db
+          .update(scores)
+          .set({
+            calculatedScore: finalScore,
+            finalScore: finalScore,
+            breakdown: JSON.stringify(criteria),
+            packId: realPackId,
+            packSnapshot: currentPack ? JSON.stringify(currentPack) : null,
+          })
+          .where(eq(scores.animeId, currentAnimeId));
+      } else {
+        await db.insert(scores).values({
+          animeId: currentAnimeId,
+          calculatedScore: finalScore,
+          finalScore: finalScore,
+          breakdown: JSON.stringify(criteria),
+          packId: realPackId,
+          packSnapshot: currentPack ? JSON.stringify(currentPack) : null,
+          createdAt: new Date(),
+        });
+      }
 
-              // 3. Cola de sincronización para Supabase/Fallbacks
-              await db.insert(syncQueue).values({
-                action: 'SAVE_SCORE',
-                payload: JSON.stringify({
-                  animeId: currentAnimeId,
-                  finalScore,
-                  breakdown: criteria,
-                  packId: realPackId,
-                  packSnapshot: currentPack ? JSON.stringify(currentPack) : null,
-                }),
-                createdAt: new Date(),
-              });
+      // 3. Cola de sincronización para Supabase/Fallbacks
+      // Siempre lo mandamos a Supabase para el backup en la nube, independientemente de AniList.
+      await db.insert(syncQueue).values({
+        action: 'SAVE_SCORE',
+        payload: JSON.stringify({
+          animeId: currentAnimeId,
+          finalScore,
+          breakdown: criteria,
+          packId: realPackId,
+          packSnapshot: currentPack ? JSON.stringify(currentPack) : null,
+        }),
+        createdAt: new Date(),
+      });
 
-              processSyncQueue(); // Fire and forget
+      processSyncQueue(); // Fire and forget
 
-              navigation.goBack();
-            } catch (error) {
-              console.error('Error guardando localmente:', error);
-            }
-          },
-        },
-      ],
-    );
+      navigation.goBack();
+    } catch (error) {
+      console.error('Error guardando localmente:', error);
+    }
   };
 
   const activeCriterion = criteria[currentIndex];
@@ -281,16 +267,40 @@ export default function RatingScreen({ route, navigation }: any) {
           </Text>
         </View>
         {mode === 'summary' && (
-          <TouchableOpacity
-            className="px-8 py-4 rounded-xl"
-            style={savingToAnilist ? ratingStyles.btnSaving : ratingStyles.btnSave}
-            onPress={handleSave}
-            disabled={savingToAnilist}
-          >
-            <Text className="text-white font-bold text-lg">
-              {savingToAnilist ? 'Guardando...' : 'Guardar'}
-            </Text>
-          </TouchableOpacity>
+          <View className="flex-row gap-2">
+            <TouchableOpacity
+              className="px-4 py-4 rounded-xl items-center justify-center border border-zinc-200 dark:border-zinc-800"
+              style={savingToAnilist ? ratingStyles.btnSaving : { backgroundColor: 'transparent' }}
+              onPress={() => handleSave(false)}
+              disabled={savingToAnilist}
+            >
+              <Text className="text-zinc-600 dark:text-zinc-300 font-bold text-sm">💾 Local</Text>
+            </TouchableOpacity>
+
+            {!!anilistToken && (
+              <TouchableOpacity
+                className="px-6 py-4 rounded-xl items-center justify-center flex-row"
+                style={savingToAnilist ? ratingStyles.btnSaving : ratingStyles.btnSave}
+                onPress={() => handleSave(true)}
+                disabled={savingToAnilist}
+              >
+                <Text className="text-white font-bold text-sm">
+                  {savingToAnilist ? '☁️ Guardando...' : '☁️ AniList'}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {!anilistToken && (
+              <TouchableOpacity
+                className="px-6 py-4 rounded-xl items-center justify-center"
+                style={savingToAnilist ? ratingStyles.btnSaving : ratingStyles.btnSave}
+                onPress={() => handleSave(false)}
+                disabled={savingToAnilist}
+              >
+                <Text className="text-white font-bold text-sm">Guardar</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         )}
       </View>
     </View>

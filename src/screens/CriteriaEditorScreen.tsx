@@ -47,16 +47,27 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
         })),
       };
 
-      const jsonString = JSON.stringify(exportData);
-      // Codificar a base64 para que sea un solo string fácil de compartir (sin caracteres raros)
-      const base64 = btoa(encodeURIComponent(jsonString));
+      const jsonString = JSON.stringify(exportData, null, 2);
+      const base64 = btoa(encodeURIComponent(JSON.stringify(exportData)));
       const shareText = `score-maker-pack://${base64}`;
 
-      await Clipboard.setStringAsync(shareText);
-      Alert.alert(
-        '¡Copiado!',
-        'El pack ha sido copiado a tu portapapeles. Podés pegarlo en cualquier lado para compartirlo.',
-      );
+      Alert.alert('Formato de Exportación', '¿Cómo deseas copiar el pack al portapapeles?', [
+        {
+          text: 'Enlace Comprimido (Ideal para compartir)',
+          onPress: async () => {
+            await Clipboard.setStringAsync(shareText);
+            Alert.alert('¡Copiado!', 'El enlace del pack ha sido copiado.');
+          },
+        },
+        {
+          text: 'Código JSON (Ideal para editar/IA)',
+          onPress: async () => {
+            await Clipboard.setStringAsync(jsonString);
+            Alert.alert('¡Copiado!', 'El código JSON puro ha sido copiado.');
+          },
+        },
+        { text: 'Cancelar', style: 'cancel' },
+      ]);
     } catch (e) {
       console.error(e);
       Alert.alert('Error', 'Hubo un problema exportando el pack.');

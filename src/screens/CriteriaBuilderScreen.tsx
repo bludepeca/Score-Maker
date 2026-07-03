@@ -112,47 +112,14 @@ export default function CriteriaBuilderScreen({ navigation }: any) {
         totalWeight += item.weight;
       }
 
-      if (Math.abs(totalWeight - 100) > 0.01) {
-        Alert.alert(
-          'Error',
-          `La suma de los pesos de los criterios debe dar exactamente 100%. Actualmente suma ${totalWeight}%.`,
-        );
-        return;
-      }
+      // En lugar de verificar que de 100 y guardarlo de una, lo enviamos al editor como borrador
+      // para que el usuario pueda ver, editar y balancearlo antes de guardarlo.
+      Alert.alert(
+        'Borrador Importado',
+        'El pack ha sido cargado. Por favor, revisalo y guardalo cuando estés conforme.',
+      );
 
-      const newPackId = Crypto.randomUUID();
-
-      await db.insert(criteriaPacks).values({
-        id: newPackId,
-        name: `${packData.packName} (Importado)`,
-        description: packData.packDescription || '',
-        isDefault: false,
-        targetTypes: JSON.stringify(packData.targetTypes || []),
-        targetGenres: JSON.stringify(packData.targetGenres || []),
-      });
-
-      for (let i = 0; i < packData.items.length; i++) {
-        const item = packData.items[i];
-        await db.insert(criteriaItems).values({
-          id: Crypto.randomUUID(),
-          packId: newPackId,
-          name: item.name,
-          description: item.description || '',
-          weight: item.weight,
-          scoreExplanations: item.scoreExplanations ? JSON.stringify(item.scoreExplanations) : null,
-          order: i,
-        });
-      }
-
-      await db.insert(syncQueue).values({
-        action: 'SYNC_CRITERIA',
-        payload: JSON.stringify({ packId: newPackId }),
-        createdAt: new Date(),
-      });
-      processSyncQueue();
-
-      Alert.alert('¡Éxito!', 'Pack importado correctamente.');
-      fetchPacks();
+      navigation.navigate('CriteriaEditor', { draftPack: packData });
     } catch (e) {
       console.error(e);
       Alert.alert('Error Crítico', 'Ocurrió un problema inesperado al importar el pack.');

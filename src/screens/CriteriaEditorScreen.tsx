@@ -21,7 +21,7 @@ import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function CriteriaEditorScreen({ route, navigation }: any) {
-  const { packId } = route?.params || {};
+  const { packId, draftPack } = route?.params || {};
 
   const [packName, setPackName] = useState('');
   const [packDescription, setPackDescription] = useState('');
@@ -108,6 +108,23 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
             .sort((a, b) => a.order - b.order);
           setItems(parsedItems);
         }
+      } else if (draftPack) {
+        setPackName(draftPack.packName || '');
+        setPackDescription(draftPack.packDescription || '');
+        setIsDefault(false);
+        setTargetTypes(draftPack.targetTypes || []);
+        setTargetGenres(draftPack.targetGenres || []);
+
+        const parsedItems = draftPack.items.map((i: any, index: number) => ({
+          name: i.name || '',
+          description: i.description || '',
+          scoreExplanations: i.scoreExplanations || {},
+          _localId: Crypto.randomUUID(),
+          weight: Number(i.weight) || 0,
+          locked: false,
+          order: index,
+        }));
+        setItems(parsedItems);
       } else {
         setItems([
           {
@@ -129,7 +146,7 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
       setLoading(false);
     };
     loadPack();
-  }, [packId]);
+  }, [packId, draftPack]);
 
   const currentTotal = items.reduce((sum, item) => sum + (Number(item.weight) || 0), 0);
   const isValid = currentTotal === 100 && packName.trim() !== '' && items.length > 0;

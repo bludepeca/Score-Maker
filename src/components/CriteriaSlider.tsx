@@ -21,10 +21,11 @@ export default function CriteriaSlider({
   onScoreChange,
   onEdit,
 }: CriteriaSliderProps) {
-
   const getExplanation = () => {
     if (!scoreExplanations) return null;
-    const keys = Object.keys(scoreExplanations).map(Number).sort((a, b) => b - a);
+    const keys = Object.keys(scoreExplanations)
+      .map(Number)
+      .sort((a, b) => b - a);
     for (const key of keys) {
       if (score >= key) {
         return scoreExplanations[key];
@@ -36,7 +37,7 @@ export default function CriteriaSlider({
   const currentExplanation = getExplanation();
 
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       className="bg-zinc-800 p-4 rounded-xl mb-3 border border-zinc-700"
       onPress={onEdit}
       activeOpacity={0.8}
@@ -48,13 +49,19 @@ export default function CriteriaSlider({
         </View>
         <Text className="text-blue-400 font-bold">{weight}%</Text>
       </View>
-      
+
       {!!currentExplanation && (
         <Text className="text-blue-300 italic text-sm mb-3">"{currentExplanation}"</Text>
       )}
 
       <View className="flex-row items-center mt-2">
-        <Text className="text-zinc-500 font-bold w-6">0</Text>
+        <TouchableOpacity
+          onPress={() => onScoreChange(Math.max(0, score - 1))}
+          className="w-8 h-8 items-center justify-center bg-zinc-700 rounded-full"
+        >
+          <Text className="font-bold text-lg text-zinc-400">-</Text>
+        </TouchableOpacity>
+
         <View className="flex-1 px-2">
           <Slider
             style={{ width: '100%', height: 30 }}
@@ -68,10 +75,16 @@ export default function CriteriaSlider({
             thumbTintColor="#60a5fa"
           />
         </View>
-        <Text className="text-zinc-500 font-bold w-6 text-right">10</Text>
+
+        <TouchableOpacity
+          onPress={() => onScoreChange(Math.min(10, score + 1))}
+          className="w-8 h-8 items-center justify-center bg-zinc-700 rounded-full"
+        >
+          <Text className="font-bold text-lg text-zinc-400">+</Text>
+        </TouchableOpacity>
       </View>
-      
-      <Text className="text-center text-white mt-1 font-bold text-xl">{score}</Text>
+
+      <Text className="text-center text-white mt-1 font-bold text-xl">{score} / 10</Text>
     </TouchableOpacity>
   );
 }

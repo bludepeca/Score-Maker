@@ -132,6 +132,9 @@ export const downloadCriteriaConfig = async () => {
       await db.delete(criteriaPacks);
 
       for (const pack of config.packs) {
+        if (pack.updatedAt && typeof pack.updatedAt === 'string') {
+          pack.updatedAt = new Date(pack.updatedAt);
+        }
         await db.insert(criteriaPacks).values(pack);
       }
       for (const item of config.items) {

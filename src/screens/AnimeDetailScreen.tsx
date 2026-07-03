@@ -177,8 +177,10 @@ export default function AnimeDetailScreen({ route, navigation }: any) {
               <Text className="text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-wider text-xs">
                 Puntaje Actual
               </Text>
-              <Text className="text-4xl font-black text-zinc-900 dark:text-white">
-                {displayScore !== undefined ? displayScore : '--'}
+              <Text
+                className={`font-black text-zinc-900 dark:text-white ${displayScore && displayScore > 0 ? 'text-4xl' : 'text-2xl mt-2'}`}
+              >
+                {displayScore && displayScore > 0 ? displayScore : 'Sin puntuar'}
               </Text>
             </View>
             {hasLocal && (

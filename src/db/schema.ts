@@ -25,6 +25,7 @@ export const criteriaPacks = sqliteTable('criteria_packs', {
   isDefault: integer('is_default', { mode: 'boolean' }).default(false),
   targetTypes: text('target_types'), // JSON array like '["ANIME", "MANGA"]'
   targetGenres: text('target_genres'), // JSON array like '["Action", "Romance"]'
+  updatedAt: integer('updated_at', { mode: 'timestamp' }), // Track modifications
 });
 
 export const criteriaItems = sqliteTable('criteria_items', {
@@ -48,6 +49,8 @@ export const scores = sqliteTable('scores', {
   manualScore: real('manual_score'),
   finalScore: real('final_score').notNull(),
   breakdown: text('breakdown').notNull(), // JSON string representing the criteria scores
+  packId: text('pack_id'), // ID of the criteria pack used
+  packSnapshot: text('pack_snapshot'), // Full JSON snapshot of the pack when it was rated
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
 

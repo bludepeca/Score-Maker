@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import * as Crypto from 'expo-crypto';
 import CriterionCard from '../components/CriterionCard';
 import CriteriaSlider from '../components/CriteriaSlider';
 import {
@@ -31,29 +32,31 @@ export default function RatingScreen({ route, navigation }: any) {
     const loadData = async () => {
       try {
         const currentAnimeId = route.params?.animeId || 1;
-        const currentPackId = route.params?.packId || 'anime_general';
+        const currentPack = route.params?.packData;
 
-        // 1. Fetch current pack criteria
-        const { criteriaItems } = require('../db/schema');
-        const itemRows = await db
-          .select()
-          .from(criteriaItems)
-          .where(eq(criteriaItems.packId, currentPackId));
-        let packCriteria = itemRows.map((i: any) => ({
-          id: i.id,
-          name: i.name,
-          description: i.description || '',
-          weight: i.weight,
-          score: 0,
-          scoreExplanations: i.scoreExplanations ? JSON.parse(i.scoreExplanations) : {},
-        }));
+        let packCriteria = [];
+        if (currentPack && currentPack.items) {
+          packCriteria = currentPack.items.map((i: any) => ({
+            id: i.id || i._localId || Crypto.randomUUID(),
+            name: i.name,
+            description: i.description || '',
+            weight: i.weight,
+            score: 0,
+            scoreExplanations:
+              typeof i.scoreExplanations === 'string'
+                ? JSON.parse(i.scoreExplanations)
+                : i.scoreExplanations || {},
+          }));
+        }
 
         // 2. Load existing score and merge
         const existing = await db.select().from(scores).where(eq(scores.animeId, currentAnimeId));
         if (existing.length > 0) {
           const loadedCriteria = JSON.parse(existing[0].breakdown);
           packCriteria = packCriteria.map((pc: any) => {
-            const oldMatch = loadedCriteria.find((lc: any) => lc.name === pc.name);
+            const oldMatch = loadedCriteria.find(
+              (lc: any) => lc.name === pc.name || lc.id === pc.id,
+            );
             if (oldMatch) {
               return { ...pc, score: oldMatch.score };
             }
@@ -135,6 +138,11 @@ export default function RatingScreen({ route, navigation }: any) {
               }
 
               // 2. Guardar en SQLite local
+              const currentPack = route.params?.packData;
+              const realPackId = currentPack?.isPseudo
+                ? currentPack.id.replace('snapshot_', '')
+                : currentPack?.id || null;
+
               const existing = await db
                 .select()
                 .from(scores)
@@ -146,6 +154,8 @@ export default function RatingScreen({ route, navigation }: any) {
                     calculatedScore: finalScore,
                     finalScore: finalScore,
                     breakdown: JSON.stringify(criteria),
+                    packId: realPackId,
+                    packSnapshot: currentPack ? JSON.stringify(currentPack) : null,
                   })
                   .where(eq(scores.animeId, currentAnimeId));
               } else {
@@ -154,6 +164,8 @@ export default function RatingScreen({ route, navigation }: any) {
                   calculatedScore: finalScore,
                   finalScore: finalScore,
                   breakdown: JSON.stringify(criteria),
+                  packId: realPackId,
+                  packSnapshot: currentPack ? JSON.stringify(currentPack) : null,
                   createdAt: new Date(),
                 });
               }

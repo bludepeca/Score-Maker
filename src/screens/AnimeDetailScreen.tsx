@@ -125,11 +125,17 @@ export default function AnimeDetailScreen({ route, navigation }: any) {
     const selectedPack = packs.find((p) => p.id === selectedPackId);
     if (!selectedPack) return;
 
+    // React Navigation warns if we pass non-serializable values (like Date objects)
+    const serializablePack = {
+      ...selectedPack,
+      updatedAt: selectedPack.updatedAt ? new Date(selectedPack.updatedAt).toISOString() : null,
+    };
+
     navigation.navigate('Rating', {
       animeTitle: anime.title.romaji,
       animeId: anime.id,
       scoreFormat: anime.mediaListEntry?.scoreFormat,
-      packData: selectedPack,
+      packData: serializablePack,
     });
   };
 

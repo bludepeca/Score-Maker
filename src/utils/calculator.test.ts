@@ -22,16 +22,12 @@ describe('Calculadora de puntuaciones', () => {
   });
 
   it('lanza error si los pesos no suman 100', () => {
-    const criterios: Criterion[] = [
-      { id: 1, name: 'Historia', weight: 50, score: 10 },
-    ];
+    const criterios: Criterion[] = [{ id: 1, name: 'Historia', weight: 50, score: 10 }];
     expect(() => calculateFinalScore(criterios)).toThrowError();
   });
 
   it('casos extremos: todos 0', () => {
-    const criterios: Criterion[] = [
-      { id: 1, name: 'A', weight: 100, score: 0 },
-    ];
+    const criterios: Criterion[] = [{ id: 1, name: 'A', weight: 100, score: 0 }];
     expect(calculateFinalScore(criterios)).toBe(0);
   });
 });
@@ -51,5 +47,72 @@ describe('Conversión de escalas AniList', () => {
     expect(convertToAnilistScale(100, 'POINT_5')).toBe(5);
     expect(convertToAnilistScale(20, 'POINT_5')).toBe(1);
     expect(convertToAnilistScale(0, 'POINT_5')).toBe(1); // Mínimo 1 estrella
+  });
+});
+
+import { autoBalanceSliders } from './calculator';
+
+describe('autoBalanceSliders', () => {
+  it('should not change items if total is already 100', () => {
+    const items = [
+      { id: 1, weight: 50 },
+      { id: 2, weight: 50 },
+    ];
+    const balanced = autoBalanceSliders(items);
+    expect(balanced).toEqual(items);
+  });
+
+  it('should not change items if all are locked', () => {
+    const items = [
+      { id: 1, weight: 60, locked: true },
+      { id: 2, weight: 60, locked: true },
+    ];
+    const balanced = autoBalanceSliders(items);
+    expect(balanced).toEqual(items); // Total is 120, but locked, so no change
+  });
+
+  it('should distribute missing percent proportionally among unlocked items', () => {
+    const items = [
+      { id: 1, weight: 40, locked: true },
+      { id: 2, weight: 20 }, // 33.3% of unlocked
+      { id: 3, weight: 40 }, // 66.6% of unlocked
+    ];
+    // Total is 100 currently, let's lower one so total is 80 (diff = +20)
+    items[0].weight = 20;
+
+    // Now total is 80, missing 20.
+    // Unlocked total = 60.
+    // id:2 should get (20/60)*20 = ~7 => 27
+    // id:3 should get (40/60)*20 = ~13 => 53
+    // Total = 20 + 27 + 53 = 100
+
+    const balanced = autoBalanceSliders(items);
+
+    const total = balanced.reduce((sum, i) => sum + i.weight, 0);
+    expect(total).toBe(100);
+    expect(balanced[0].weight).toBe(20); // Locked, unchanged
+    expect(balanced[1].weight).toBe(27);
+    expect(balanced[2].weight).toBe(53);
+  });
+
+  it('should remove excess percent proportionally among unlocked items', () => {
+    const items = [
+      { id: 1, weight: 50 },
+      { id: 2, weight: 50 },
+      { id: 3, weight: 20, locked: true },
+    ];
+    // Total is 120, diff is -20.
+    // Unlocked total = 100.
+    // id:1 gets (50/100)*(-20) = -10 => 40
+    // id:2 gets (50/100)*(-20) = -10 => 40
+    // id:3 locked => 20
+
+    const balanced = autoBalanceSliders(items);
+
+    const total = balanced.reduce((sum, i) => sum + i.weight, 0);
+    expect(total).toBe(100);
+    expect(balanced[0].weight).toBe(40);
+    expect(balanced[1].weight).toBe(40);
+    expect(balanced[2].weight).toBe(20);
   });
 });

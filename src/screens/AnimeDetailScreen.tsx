@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet } from 'react-native';
 import { getOrSeedPacks } from '../services/packService';
 
 export default function AnimeDetailScreen({ route, navigation }: any) {
@@ -136,7 +136,11 @@ export default function AnimeDetailScreen({ route, navigation }: any) {
                   <TouchableOpacity
                     key={pack.id}
                     onPress={() => setSelectedPackId(pack.id)}
-                    className={`p-4 flex-row justify-between items-center ${index !== packs.length - 1 ? 'border-b border-zinc-100 dark:border-zinc-800/50' : ''} ${isSelected ? 'bg-blue-50 dark:bg-blue-900/10' : ''}`}
+                    className="p-4 flex-row justify-between items-center"
+                    style={[
+                      index !== packs.length - 1 && detailStyles.packBorder,
+                      isSelected && detailStyles.packSelected,
+                    ]}
                   >
                     <View className="flex-1 pr-2">
                       <Text
@@ -165,7 +169,8 @@ export default function AnimeDetailScreen({ route, navigation }: any) {
 
       <View className="p-6 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-900">
         <TouchableOpacity
-          className={`py-4 rounded-xl items-center shadow-lg ${!selectedPackId ? 'bg-zinc-300 dark:bg-zinc-800' : 'bg-blue-600 shadow-blue-500/30'}`}
+          className="py-4 rounded-xl items-center"
+          style={!selectedPackId ? detailStyles.btnDisabled : detailStyles.btnActive}
           disabled={!selectedPackId}
           onPress={handleStartRating}
         >
@@ -179,3 +184,26 @@ export default function AnimeDetailScreen({ route, navigation }: any) {
     </View>
   );
 }
+
+// Styles extracted from NativeWind conditional template literals to avoid
+// the CSS interop race condition (GitHub: nativewind#1536).
+const detailStyles = StyleSheet.create({
+  packBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(161, 161, 170, 0.15)', // zinc-100 approx
+  },
+  packSelected: {
+    backgroundColor: 'rgba(59, 130, 246, 0.05)', // blue-50 approx
+  },
+  btnActive: {
+    backgroundColor: '#2563eb', // blue-600
+    shadowColor: 'rgba(59, 130, 246, 0.3)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  btnDisabled: {
+    backgroundColor: '#d4d4d8', // zinc-300
+  },
+});

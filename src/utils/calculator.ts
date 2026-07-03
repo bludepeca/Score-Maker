@@ -245,3 +245,95 @@ export const convertToAnilistScale = (
       return score100;
   }
 };
+
+/**
+ * Función Mágica de Auto-Balanceo para los Sliders
+ * Reparte el sobrante/faltante de porcentaje (hasta 100%) SOLO entre los ítems que NO están bloqueados.
+ */
+export const autoBalanceSliders = (
+  items: { id: string | number; weight: number; locked?: boolean }[],
+): { id: string | number; weight: number; locked?: boolean }[] => {
+  const currentTotal = items.reduce((sum, item) => sum + item.weight, 0);
+  const diff = 100 - currentTotal;
+
+  if (diff === 0) return items; // Ya está balanceado
+
+  const unlockedItems = items.filter((item) => !item.locked);
+
+  if (unlockedItems.length === 0) {
+    // Si todos están bloqueados, no podemos balancear nada
+    return items;
+  }
+
+  // Calculamos la suma actual de pesos de los desbloqueados
+  const unlockedTotal = unlockedItems.reduce((sum, item) => sum + item.weight, 0);
+
+  const newItems = items.map((item) => ({ ...item })); // Copia profunda de primer nivel
+
+  if (unlockedTotal === 0) {
+    // Si la suma de desbloqueados es 0, repartimos el diff a partes iguales
+    const share = Math.floor(diff / unlockedItems.length);
+    let remainder = diff - share * unlockedItems.length;
+
+    newItems.forEach((item) => {
+      if (!item.locked) {
+        item.weight += share;
+        if (remainder > 0) {
+          item.weight += 1;
+          remainder -= 1;
+        }
+      }
+    });
+  } else {
+    // Si tienen peso, repartimos proporcionalmente al peso que ya tienen
+    // diff puede ser positivo o negativo
+    let distributedDiff = 0;
+
+    // Asignación inicial
+    newItems.forEach((item) => {
+      if (!item.locked) {
+        const proportion = item.weight / unlockedTotal;
+        const change = Math.round(diff * proportion);
+        item.weight += change;
+
+        // Evitar pesos negativos
+        if (item.weight < 0) {
+          item.weight = 0;
+        }
+      }
+    });
+
+    // Fijar redondeos (puede quedar un remanente)
+    const newTotal = newItems.reduce((sum, item) => sum + item.weight, 0);
+    let remainder = 100 - newTotal;
+
+    if (remainder !== 0) {
+      // Repartir 1 a 1 el remanente al que más peso tenga (o al revés si es negativo)
+      const sortedUnlockedIndices = newItems
+        .map((item, index) => ({ item, index }))
+        .filter(({ item }) => !item.locked)
+        .sort((a, b) => b.item.weight - a.item.weight);
+
+      if (sortedUnlockedIndices.length > 0) {
+        if (remainder > 0) {
+          for (let i = 0; i < remainder; i++) {
+            newItems[sortedUnlockedIndices[i % sortedUnlockedIndices.length].index].weight += 1;
+          }
+        } else {
+          for (let i = 0; i < Math.abs(remainder); i++) {
+            const targetIdx = sortedUnlockedIndices[i % sortedUnlockedIndices.length].index;
+            if (newItems[targetIdx].weight > 0) {
+              newItems[targetIdx].weight -= 1;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Double check clamps
+  return newItems.map((item) => ({
+    ...item,
+    weight: Math.max(0, item.weight),
+  }));
+};

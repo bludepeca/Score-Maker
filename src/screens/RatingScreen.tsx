@@ -122,7 +122,7 @@ export default function RatingScreen({ route, navigation }: any) {
                 await saveToAnilist({
                   variables: {
                     mediaId: currentAnimeId,
-                    scoreRaw: rawScoreToSave,
+                    score: rawScoreToSave,
                   },
                 });
                 console.log('Guardado en AniList correctamente.');

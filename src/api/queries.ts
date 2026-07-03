@@ -44,8 +44,8 @@ export const GET_USER_ANIME_LIST = gql`
 `;
 
 export const SAVE_MEDIA_LIST_ENTRY = gql`
-  mutation SaveMediaListEntry($mediaId: Int, $scoreRaw: Int) {
-    SaveMediaListEntry(mediaId: $mediaId, scoreRaw: $scoreRaw) {
+  mutation SaveMediaListEntry($mediaId: Int, $score: Float) {
+    SaveMediaListEntry(mediaId: $mediaId, score: $score) {
       id
       score
     }

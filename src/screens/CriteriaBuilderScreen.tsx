@@ -196,8 +196,25 @@ export default function CriteriaBuilderScreen({ navigation }: any) {
               key={pack.id}
               className="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 mb-3 flex-row justify-between items-center shadow-sm"
               onPress={() => navigation.navigate('CriteriaEditor', { packId: pack.id })}
+              onLongPress={() => {
+                if (!pack.isDefault) {
+                  Alert.alert('Opciones del Pack', `¿Qué deseas hacer con "${pack.name}"?`, [
+                    { text: 'Cancelar', style: 'cancel' },
+                    {
+                      text: 'Editar',
+                      onPress: () => navigation.navigate('CriteriaEditor', { packId: pack.id }),
+                    },
+                    {
+                      text: 'Eliminar',
+                      style: 'destructive',
+                      onPress: () => handleDeletePack(pack.id, pack.name),
+                    },
+                  ]);
+                }
+              }}
+              delayLongPress={400}
             >
-              <View>
+              <View className="flex-1 mr-4">
                 <Text className="text-zinc-900 dark:text-white font-bold text-lg">{pack.name}</Text>
                 {!!pack.description && (
                   <Text className="text-zinc-500 dark:text-zinc-400 text-sm">
@@ -212,15 +229,7 @@ export default function CriteriaBuilderScreen({ navigation }: any) {
                   </Text>
                 </View>
               ) : (
-                <View className="flex-row items-center gap-4">
-                  <TouchableOpacity
-                    onPress={() => handleDeletePack(pack.id, pack.name)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                  </TouchableOpacity>
-                  <Text className="text-zinc-400">{'>'}</Text>
-                </View>
+                <Text className="text-zinc-400">{'>'}</Text>
               )}
             </TouchableOpacity>
           ))

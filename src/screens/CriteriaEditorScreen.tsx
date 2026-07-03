@@ -344,6 +344,25 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
 
         <View className="mb-6">
           <Text className="text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-wider text-xs mb-2">
+            Descripción del Pack
+          </Text>
+          <TextInput
+            value={packDescription}
+            onChangeText={setPackDescription}
+            placeholder="¿Para qué se usa este pack?"
+            placeholderTextColor="#a1a1aa"
+            editable={!isDefault}
+            multiline
+            style={[
+              { minHeight: 80, textAlignVertical: 'top' },
+              isDefault ? editorStyles.disabledInput : undefined,
+            ]}
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 text-zinc-900 dark:text-white text-base"
+          />
+        </View>
+
+        <View className="mb-6">
+          <Text className="text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-wider text-xs mb-2">
             Visibilidad (Tags)
           </Text>
           <TouchableOpacity
@@ -428,16 +447,14 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
                       value={expl}
                       onChangeText={(text) => {
                         const newItems = [...items];
-                        if (text.trim() === '') {
-                          delete newItems[activeItemIndex].scoreExplanations[score];
-                        } else {
-                          newItems[activeItemIndex].scoreExplanations[score] = text;
-                        }
+                        newItems[activeItemIndex].scoreExplanations[score] = text;
                         setItems(newItems);
                       }}
-                      placeholder="Frase para esta nota..."
+                      multiline
+                      style={{ minHeight: 52, textAlignVertical: 'top' }}
+                      placeholder={`¿Qué significa un ${score} en este criterio?`}
                       placeholderTextColor="#a1a1aa"
-                      className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 text-zinc-900 dark:text-white font-medium shadow-sm"
+                      className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-zinc-900 dark:text-white text-sm shadow-sm"
                     />
                   </View>
                 );
@@ -564,7 +581,7 @@ const CriteriaItemCard = memo(
             onChangeText={(t) => handleChangeItemText(index, 'name', t)}
             placeholder="Nombre (ej: Animación)"
             placeholderTextColor="#a1a1aa"
-            className="text-zinc-900 dark:text-white font-bold text-lg mb-2"
+            className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-3 text-zinc-900 dark:text-white font-bold text-lg mb-2"
           />
           <TextInput
             value={item.description}

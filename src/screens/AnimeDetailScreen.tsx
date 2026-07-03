@@ -193,11 +193,14 @@ export default function AnimeDetailScreen({ route, navigation }: any) {
           </View>
 
           {!!anime.description && (
-            <View className="mb-8">
-              <Text className="text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-wider text-xs mb-2">
+            <View className="mb-8 bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200 dark:border-zinc-800 shadow-sm">
+              <Text className="text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-widest text-[10px] mb-3">
                 Sinopsis
               </Text>
-              <Text className="text-zinc-800 dark:text-zinc-300 leading-relaxed" numberOfLines={4}>
+              <Text
+                className="text-zinc-700 dark:text-zinc-300 leading-relaxed text-sm"
+                numberOfLines={5}
+              >
                 {anime.description.replace(/<[^>]+>/g, '')}
               </Text>
             </View>

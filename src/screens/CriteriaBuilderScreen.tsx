@@ -5,6 +5,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as Crypto from 'expo-crypto';
 import { db } from '../db';
 import { criteriaPacks, criteriaItems, syncQueue } from '../db/schema';
+import { eq } from 'drizzle-orm';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { processSyncQueue } from '../services/syncService';
@@ -29,6 +30,38 @@ export default function CriteriaBuilderScreen({ navigation }: any) {
 
   const handleCreateNew = () => {
     navigation.navigate('CriteriaEditor');
+  };
+
+  const handleDeletePack = (packId: string, packName: string) => {
+    Alert.alert(
+      'Eliminar Pack',
+      `¿Estás seguro que deseas eliminar el pack "${packName}"? Esto no se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await db.delete(criteriaItems).where(eq(criteriaItems.packId, packId));
+              await db.delete(criteriaPacks).where(eq(criteriaPacks.id, packId));
+
+              await db.insert(syncQueue).values({
+                action: 'SYNC_CRITERIA',
+                payload: JSON.stringify({ packId: packId }),
+                createdAt: new Date(),
+              });
+              processSyncQueue();
+
+              fetchPacks();
+            } catch (e) {
+              console.error(e);
+              Alert.alert('Error', 'No se pudo eliminar el pack.');
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleImport = async () => {
@@ -179,7 +212,15 @@ export default function CriteriaBuilderScreen({ navigation }: any) {
                   </Text>
                 </View>
               ) : (
-                <Text className="text-zinc-400">{'>'}</Text>
+                <View className="flex-row items-center gap-4">
+                  <TouchableOpacity
+                    onPress={() => handleDeletePack(pack.id, pack.name)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                  </TouchableOpacity>
+                  <Text className="text-zinc-400">{'>'}</Text>
+                </View>
               )}
             </TouchableOpacity>
           ))

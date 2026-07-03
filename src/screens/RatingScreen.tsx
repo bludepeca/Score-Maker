@@ -177,6 +177,8 @@ export default function RatingScreen({ route, navigation }: any) {
                   animeId: currentAnimeId,
                   finalScore,
                   breakdown: criteria,
+                  packId: realPackId,
+                  packSnapshot: currentPack ? JSON.stringify(currentPack) : null,
                 }),
                 createdAt: new Date(),
               });

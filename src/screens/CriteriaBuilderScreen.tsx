@@ -34,17 +34,57 @@ export default function CriteriaBuilderScreen({ navigation }: any) {
   const handleImport = async () => {
     try {
       const text = await Clipboard.getStringAsync();
-      if (!text || !text.startsWith('score-maker-pack://')) {
-        Alert.alert('Error', 'No hay ningún pack válido en el portapapeles.');
+      if (!text || text.trim().length === 0) {
+        Alert.alert('Error', 'El portapapeles está vacío.');
         return;
       }
 
-      const base64 = text.replace('score-maker-pack://', '');
-      const jsonString = decodeURIComponent(atob(base64));
-      const packData = JSON.parse(jsonString);
+      let jsonString = text.trim();
 
-      if (!packData.packName || !Array.isArray(packData.items)) {
-        throw new Error('Formato inválido');
+      // Si viene con el prefijo base64, lo decodificamos
+      if (text.startsWith('score-maker-pack://')) {
+        const base64 = text.replace('score-maker-pack://', '');
+        jsonString = decodeURIComponent(atob(base64));
+      }
+
+      let packData;
+      try {
+        packData = JSON.parse(jsonString);
+      } catch (e) {
+        Alert.alert('Error de formato', 'El contenido del portapapeles no es un JSON válido.');
+        return;
+      }
+
+      // Validaciones estrictas
+      if (!packData.packName || typeof packData.packName !== 'string') {
+        Alert.alert('Error', 'El JSON debe contener un "packName" válido de tipo texto.');
+        return;
+      }
+      if (!Array.isArray(packData.items) || packData.items.length === 0) {
+        Alert.alert('Error', 'El JSON debe contener un arreglo "items" con al menos un criterio.');
+        return;
+      }
+
+      let totalWeight = 0;
+      for (let i = 0; i < packData.items.length; i++) {
+        const item = packData.items[i];
+        if (!item.name || typeof item.name !== 'string') {
+          Alert.alert('Error', `El ítem #${i + 1} no tiene un "name" válido.`);
+          return;
+        }
+        if (typeof item.weight !== 'number') {
+          Alert.alert('Error', `El ítem "${item.name}" no tiene un "weight" (peso) numérico.`);
+          return;
+        }
+        totalWeight += item.weight;
+      }
+
+      if (Math.abs(totalWeight - 100) > 0.01) {
+        Alert.alert(
+          'Error',
+          `La suma de los pesos de los criterios debe dar exactamente 100%. Actualmente suma ${totalWeight}%.`,
+        );
+        return;
       }
 
       const newPackId = Crypto.randomUUID();
@@ -82,10 +122,7 @@ export default function CriteriaBuilderScreen({ navigation }: any) {
       fetchPacks();
     } catch (e) {
       console.error(e);
-      Alert.alert(
-        'Error',
-        'No se pudo importar el pack. Asegúrate de haber copiado el texto correcto.',
-      );
+      Alert.alert('Error Crítico', 'Ocurrió un problema inesperado al importar el pack.');
     }
   };
 

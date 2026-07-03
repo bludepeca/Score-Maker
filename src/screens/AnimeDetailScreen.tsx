@@ -6,6 +6,8 @@ export default function AnimeDetailScreen({ route, navigation }: any) {
   const { anime, hasLocal, displayScore } = route.params;
   const [packs, setPacks] = useState<any[]>([]);
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
+  const [originalPackIdUsed, setOriginalPackIdUsed] = useState<string | null>(null);
+  const [hasMismatch, setHasMismatch] = useState(false);
 
   useEffect(() => {
     const fetchPacks = async () => {
@@ -14,17 +16,19 @@ export default function AnimeDetailScreen({ route, navigation }: any) {
         const { scores } = await import('../db/schema');
         const { eq } = await import('drizzle-orm');
 
-        // Check if there is a previous score
         const existingScore = await db.select().from(scores).where(eq(scores.animeId, anime.id));
         let previousPackId: string | null = null;
+        let previousPackSnapshot: any = null;
+
         if (existingScore.length > 0) {
-          try {
-            const breakdown = JSON.parse(existingScore[0].breakdown);
-            if (breakdown.length > 0 && breakdown[0].packId) {
-              previousPackId = breakdown[0].packId;
+          const scoreRecord = existingScore[0];
+          previousPackId = scoreRecord.packId;
+          if (scoreRecord.packSnapshot) {
+            try {
+              previousPackSnapshot = JSON.parse(scoreRecord.packSnapshot);
+            } catch (e) {
+              console.error('Error parsing packSnapshot:', e);
             }
-          } catch (e) {
-            console.error('Error parsing breakdown:', e);
           }
         }
 
@@ -50,20 +54,58 @@ export default function AnimeDetailScreen({ route, navigation }: any) {
           return typeMatch && genreMatch;
         });
 
-        setPacks(validPacks);
+        let displayPacks = [...validPacks];
+        let snapshotIsOld = false;
 
-        let defaultPack = validPacks[0];
-        if (previousPackId) {
-          const found = validPacks.find((p) => p.id === previousPackId);
-          if (found) defaultPack = found;
+        if (previousPackSnapshot) {
+          const localPack = validPacks.find((p) => p.id === previousPackId);
+          snapshotIsOld = true; // Assume old unless proven otherwise
+
+          if (localPack) {
+            const localDate = localPack.updatedAt ? new Date(localPack.updatedAt).getTime() : 0;
+            const snapDate = previousPackSnapshot.updatedAt
+              ? new Date(previousPackSnapshot.updatedAt).getTime()
+              : 0;
+
+            if (localDate === snapDate) {
+              snapshotIsOld = false;
+            }
+          }
+
+          if (snapshotIsOld) {
+            const pseudoPack = {
+              ...previousPackSnapshot,
+              id: `snapshot_${previousPackSnapshot.id}`,
+              isPseudo: true,
+              name: `${previousPackSnapshot.name} (Versión Usada)`,
+            };
+            displayPacks = [pseudoPack, ...displayPacks];
+          }
+        }
+
+        setPacks(displayPacks);
+
+        let initialSelectedId: string | null | undefined = displayPacks[0]?.id;
+        let originalId: string | null = null;
+
+        if (previousPackSnapshot) {
+          if (snapshotIsOld) {
+            initialSelectedId = `snapshot_${previousPackSnapshot.id}`;
+            originalId = initialSelectedId;
+          } else {
+            initialSelectedId = previousPackId;
+            originalId = initialSelectedId;
+          }
+        } else if (previousPackId) {
+          initialSelectedId = previousPackId;
+          originalId = initialSelectedId;
         } else {
-          const found = validPacks.find((p) => p.isDefault);
-          if (found) defaultPack = found;
+          const found = displayPacks.find((p) => p.isDefault);
+          if (found) initialSelectedId = found.id;
         }
 
-        if (defaultPack) {
-          setSelectedPackId(defaultPack.id);
-        }
+        setSelectedPackId(initialSelectedId || null);
+        setOriginalPackIdUsed(originalId || null);
       } catch (e) {
         console.error(e);
       }
@@ -71,11 +113,23 @@ export default function AnimeDetailScreen({ route, navigation }: any) {
     fetchPacks();
   }, []);
 
+  useEffect(() => {
+    if (originalPackIdUsed && selectedPackId && originalPackIdUsed !== selectedPackId) {
+      setHasMismatch(true);
+    } else {
+      setHasMismatch(false);
+    }
+  }, [selectedPackId, originalPackIdUsed]);
+
   const handleStartRating = () => {
+    const selectedPack = packs.find((p) => p.id === selectedPackId);
+    if (!selectedPack) return;
+
     navigation.navigate('Rating', {
-      animeId: anime.id,
       animeTitle: anime.title.romaji,
-      packId: selectedPackId,
+      animeId: anime.id,
+      scoreFormat: anime.mediaListEntry?.scoreFormat,
+      packData: selectedPack,
     });
   };
 
@@ -191,6 +245,18 @@ export default function AnimeDetailScreen({ route, navigation }: any) {
               })
             )}
           </View>
+
+          {hasMismatch && (
+            <View className="bg-orange-100 dark:bg-orange-900/20 p-4 rounded-xl border border-orange-200 dark:border-orange-800/50 mt-4 mx-2">
+              <Text className="text-orange-800 dark:text-orange-300 font-bold mb-1">
+                ⚠️ Atención
+              </Text>
+              <Text className="text-orange-700 dark:text-orange-400 text-sm leading-tight">
+                Estás por evaluar usando un pack (o versión) distinto al original. Los puntajes de
+                los criterios coincidentes se mantendrán, pero tu nota final cambiará.
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
 

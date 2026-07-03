@@ -220,6 +220,7 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
           isDefault: false,
           targetTypes: JSON.stringify(targetTypes),
           targetGenres: JSON.stringify(targetGenres),
+          updatedAt: new Date(),
         });
       } else {
         await db
@@ -229,6 +230,7 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
             description: packDescription,
             targetTypes: JSON.stringify(targetTypes),
             targetGenres: JSON.stringify(targetGenres),
+            updatedAt: new Date(),
           })
           .where(eq(criteriaPacks.id, finalPackId));
       }

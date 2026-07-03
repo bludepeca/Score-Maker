@@ -644,18 +644,38 @@ const CriteriaItemCard = memo(
               {item.weight}%
             </Text>
           </View>
-          <Slider
-            style={{ width: '100%', height: 30, opacity: item.locked ? 0.5 : 1 }}
-            minimumValue={0}
-            maximumValue={100}
-            step={1}
-            value={item.weight}
-            disabled={item.locked}
-            onValueChange={(val) => handleSliderChange(index, val)}
-            minimumTrackTintColor={item.locked ? '#f97316' : '#3b82f6'}
-            maximumTrackTintColor="#3f3f46"
-            thumbTintColor={item.locked ? '#f97316' : '#60a5fa'}
-          />
+          <View className="flex-row items-center">
+            <TouchableOpacity
+              onPress={() => handleSliderChange(index, Math.max(0, item.weight - 1))}
+              disabled={item.locked}
+              className="w-10 h-10 items-center justify-center bg-zinc-200 dark:bg-zinc-800 rounded-full"
+              style={{ opacity: item.locked ? 0.5 : 1 }}
+            >
+              <Text className="font-bold text-xl text-zinc-600 dark:text-zinc-400">-</Text>
+            </TouchableOpacity>
+
+            <Slider
+              style={{ flex: 1, height: 30, opacity: item.locked ? 0.5 : 1, marginHorizontal: 10 }}
+              minimumValue={0}
+              maximumValue={100}
+              step={1}
+              value={item.weight}
+              disabled={item.locked}
+              onValueChange={(val) => handleSliderChange(index, val)}
+              minimumTrackTintColor={item.locked ? '#f97316' : '#3b82f6'}
+              maximumTrackTintColor="#3f3f46"
+              thumbTintColor={item.locked ? '#f97316' : '#60a5fa'}
+            />
+
+            <TouchableOpacity
+              onPress={() => handleSliderChange(index, Math.min(100, item.weight + 1))}
+              disabled={item.locked}
+              className="w-10 h-10 items-center justify-center bg-zinc-200 dark:bg-zinc-800 rounded-full"
+              style={{ opacity: item.locked ? 0.5 : 1 }}
+            >
+              <Text className="font-bold text-xl text-zinc-600 dark:text-zinc-400">+</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View className="flex-row justify-between items-center border-t border-zinc-100 dark:border-zinc-800/50 pt-3">

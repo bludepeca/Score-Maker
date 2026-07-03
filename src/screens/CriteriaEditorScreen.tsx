@@ -76,7 +76,7 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
 
   // Modal State for Explanations
   const [explModalVisible, setExplModalVisible] = useState(false);
-  const [activeItemIndex, setActiveItemIndex] = useState<number | null>(null);
+  const [activeItemId, setActiveItemId] = useState<string | null>(null);
 
   // Modal State for Tags
   const [tagsModalVisible, setTagsModalVisible] = useState(false);
@@ -164,36 +164,28 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
     ]);
   }, []);
 
-  const handleRemoveItem = useCallback((index: number) => {
-    setItems((prev) => {
-      const newItems = [...prev];
-      newItems.splice(index, 1);
-      return newItems;
-    });
+  const handleRemoveItem = useCallback((id: string) => {
+    setItems((prev) => prev.filter((item) => (item.id || item._localId) !== id));
   }, []);
 
-  const handleChangeItemText = useCallback((index: number, field: string, value: any) => {
-    setItems((prev) => {
-      const newItems = [...prev];
-      newItems[index] = { ...newItems[index], [field]: value };
-      return newItems;
-    });
+  const handleChangeItemText = useCallback((id: string, field: string, value: any) => {
+    setItems((prev) =>
+      prev.map((item) => ((item.id || item._localId) === id ? { ...item, [field]: value } : item)),
+    );
   }, []);
 
-  const handleSliderChange = useCallback((index: number, val: number) => {
-    setItems((prev) => {
-      const newItems = [...prev];
-      newItems[index] = { ...newItems[index], weight: val };
-      return newItems;
-    });
+  const handleSliderChange = useCallback((id: string, val: number) => {
+    setItems((prev) =>
+      prev.map((item) => ((item.id || item._localId) === id ? { ...item, weight: val } : item)),
+    );
   }, []);
 
-  const handleToggleLock = useCallback((index: number) => {
-    setItems((prev) => {
-      const newItems = [...prev];
-      newItems[index] = { ...newItems[index], locked: !newItems[index].locked };
-      return newItems;
-    });
+  const handleToggleLock = useCallback((id: string) => {
+    setItems((prev) =>
+      prev.map((item) =>
+        (item.id || item._localId) === id ? { ...item, locked: !item.locked } : item,
+      ),
+    );
   }, []);
 
   const handleAutoBalance = useCallback(() => {
@@ -428,8 +420,8 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
             handleToggleLock={handleToggleLock}
             handleSliderChange={handleSliderChange}
             handleRemoveItem={handleRemoveItem}
-            onShowExplanations={(idx: number) => {
-              setActiveItemIndex(idx);
+            onShowExplanations={() => {
+              setActiveItemId(item.id || item._localId);
               setExplModalVisible(true);
             }}
           />
@@ -462,10 +454,15 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
             Maestra". Cuando el usuario deslice el slider a esa nota, verá esta frase.
           </Text>
 
-          {activeItemIndex !== null && (
+          {activeItemId !== null && (
             <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 350 }}>
               {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].map((score) => {
+                const activeItemIndex = items.findIndex(
+                  (i) => (i.id || i._localId) === activeItemId,
+                );
+                if (activeItemIndex === -1) return null;
                 const expl = items[activeItemIndex].scoreExplanations[score] || '';
+
                 return (
                   <View key={score} className="flex-row items-center mb-3">
                     <View className="bg-zinc-200 dark:bg-zinc-800 w-12 h-12 rounded-xl items-center justify-center mr-3">
@@ -476,9 +473,19 @@ export default function CriteriaEditorScreen({ route, navigation }: any) {
                     <TextInput
                       value={expl}
                       onChangeText={(text) => {
-                        const newItems = [...items];
-                        newItems[activeItemIndex].scoreExplanations[score] = text;
-                        setItems(newItems);
+                        setItems((prev) => {
+                          const newItems = [...prev];
+                          const idx = newItems.findIndex(
+                            (i) => (i.id || i._localId) === activeItemId,
+                          );
+                          if (idx === -1) return newItems;
+                          newItems[idx] = { ...newItems[idx] };
+                          newItems[idx].scoreExplanations = {
+                            ...newItems[idx].scoreExplanations,
+                          };
+                          newItems[idx].scoreExplanations[score] = text;
+                          return newItems;
+                        });
                       }}
                       multiline
                       style={{ minHeight: 52, textAlignVertical: 'top' }}
@@ -596,26 +603,26 @@ const editorStyles = StyleSheet.create({
 const CriteriaItemCard = memo(
   ({
     item,
-    index,
     handleChangeItemText,
     handleToggleLock,
     handleSliderChange,
     handleRemoveItem,
     onShowExplanations,
   }: any) => {
+    const itemId = item.id || item._localId;
     return (
       <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 mb-4 shadow-sm">
         <View className="mb-3">
           <TextInput
             value={item.name}
-            onChangeText={(t) => handleChangeItemText(index, 'name', t)}
+            onChangeText={(t) => handleChangeItemText(itemId, 'name', t)}
             placeholder="Nombre (ej: Animación)"
             placeholderTextColor="#a1a1aa"
             className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-3 text-zinc-900 dark:text-white font-bold text-lg mb-2"
           />
           <TextInput
             value={item.description}
-            onChangeText={(t) => handleChangeItemText(index, 'description', t)}
+            onChangeText={(t) => handleChangeItemText(itemId, 'description', t)}
             placeholder="Descripción opcional"
             placeholderTextColor="#a1a1aa"
             multiline
@@ -630,7 +637,7 @@ const CriteriaItemCard = memo(
         >
           <View className="flex-row justify-between mb-2">
             <TouchableOpacity
-              onPress={() => handleToggleLock(index)}
+              onPress={() => handleToggleLock(itemId)}
               className="flex-row items-center"
             >
               <Text className="text-lg mr-2">{item.locked ? '🔒' : '🔓'}</Text>
@@ -648,7 +655,7 @@ const CriteriaItemCard = memo(
           </View>
           <View className="flex-row items-center">
             <TouchableOpacity
-              onPress={() => handleSliderChange(index, Math.max(0, item.weight - 1))}
+              onPress={() => handleSliderChange(itemId, Math.max(0, item.weight - 1))}
               disabled={item.locked}
               className="w-10 h-10 items-center justify-center bg-zinc-200 dark:bg-zinc-800 rounded-full"
               style={{ opacity: item.locked ? 0.5 : 1 }}
@@ -663,14 +670,14 @@ const CriteriaItemCard = memo(
               step={1}
               value={item.weight}
               disabled={item.locked}
-              onValueChange={(val) => handleSliderChange(index, val)}
+              onValueChange={(val) => handleSliderChange(itemId, val)}
               minimumTrackTintColor={item.locked ? '#f97316' : '#3b82f6'}
               maximumTrackTintColor="#3f3f46"
               thumbTintColor={item.locked ? '#f97316' : '#60a5fa'}
             />
 
             <TouchableOpacity
-              onPress={() => handleSliderChange(index, Math.min(100, item.weight + 1))}
+              onPress={() => handleSliderChange(itemId, Math.min(100, item.weight + 1))}
               disabled={item.locked}
               className="w-10 h-10 items-center justify-center bg-zinc-200 dark:bg-zinc-800 rounded-full"
               style={{ opacity: item.locked ? 0.5 : 1 }}
@@ -681,12 +688,12 @@ const CriteriaItemCard = memo(
         </View>
 
         <View className="flex-row justify-between items-center border-t border-zinc-100 dark:border-zinc-800/50 pt-3">
-          <TouchableOpacity onPress={() => onShowExplanations(index)}>
+          <TouchableOpacity onPress={() => onShowExplanations(itemId)}>
             <Text className="text-blue-600 dark:text-blue-400 font-bold text-sm">
-              💬 Frases ({Object.keys(item.scoreExplanations).length})
+              💬 Frases ({Object.keys(item.scoreExplanations || {}).length})
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleRemoveItem(index)}>
+          <TouchableOpacity onPress={() => handleRemoveItem(itemId)}>
             <Text className="text-red-500 font-bold text-sm">Eliminar</Text>
           </TouchableOpacity>
         </View>

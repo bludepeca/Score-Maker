@@ -34,9 +34,26 @@ export default function RatingScreen({ route, navigation }: any) {
         const currentAnimeId = route.params?.animeId || 1;
         const currentPack = route.params?.packData;
 
-        let packCriteria = [];
+        let packCriteria: any[] = [];
+
         if (currentPack && currentPack.items) {
-          packCriteria = currentPack.items.map((i: any) => ({
+          // It's a snapshot or a pack that already has items loaded
+          packCriteria = currentPack.items;
+        } else if (currentPack && currentPack.id) {
+          // It's a local pack, we need to fetch its items
+          const { criteriaItems } = require('../db/schema');
+          const itemRows = await db
+            .select()
+            .from(criteriaItems)
+            .where(eq(criteriaItems.packId, currentPack.id));
+          packCriteria = itemRows;
+
+          // Attach items to currentPack so when we save the snapshot, it has everything
+          currentPack.items = packCriteria;
+        }
+
+        if (packCriteria.length > 0) {
+          packCriteria = packCriteria.map((i: any) => ({
             id: i.id || i._localId || Crypto.randomUUID(),
             name: i.name,
             description: i.description || '',

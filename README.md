@@ -47,4 +47,4 @@ EXPO_PUBLIC_ANILIST_CLIENT_ID=tu_client_id_de_anilist
 - La pantalla de "Criteria Builder" se encuentra en desarrollo. Por ahora usa los packs base incrustados en `src/utils/calculator.ts`.
 
 ---
-*Diseñado con el corazón y el cerebro por y para Lautaro.*
+*Diseñado con el corazón y el cerebro por y para bludepeca.*
